@@ -1,4 +1,5 @@
 let mic;
+let fft;
 let isAudioStarted = false;
 
 function setup() {
@@ -18,20 +19,41 @@ function draw() {
     return;
   }
 
-  // 音量レベルを取得 (0.0 ~ 1.0)
-  const level = mic.getLevel();
-  
   // 背景を黒で塗りつぶす
   background(0);
-  
-  // 円の直径を音量レベルに応じて変化させる
-  // levelは小さい値なので、大きくマッピングする
-  const diameter = map(level, 0, 1, 50, windowWidth * 0.8);
-  
-  // 円を描画
+
+  // 周波数データを解析
+  fft.analyze();
+
+  // 各周波数帯域のエネルギー量を取得 (0-255)
+  const bass = fft.getEnergy("bass");
+  const mid = fft.getEnergy("mid");
+  const treble = fft.getEnergy("treble");
+
+  // エネルギー量を円の直径にマッピング
+  const mapMax = 255;
+  const bassDiameter = map(bass, 0, mapMax, 20, height * 0.6);
+  const midDiameter = map(mid, 0, mapMax, 20, height * 0.6);
+  const trebleDiameter = map(treble, 0, mapMax, 20, height * 0.6);
+
+  // 3つの円を描画
   noStroke();
-  fill(255); // 白
-  ellipse(width / 2, height / 2, diameter, diameter);
+  fill(255);
+  
+  const y = height / 2;
+  const spacing = width / 4;
+
+  ellipse(spacing, y, bassDiameter, bassDiameter);       // Bass
+  ellipse(spacing * 2, y, midDiameter, midDiameter);   // Mid
+  ellipse(spacing * 3, y, trebleDiameter, trebleDiameter); // Treble
+  
+  // ラベル表示
+  fill(150);
+  textSize(20);
+  textAlign(CENTER, CENTER);
+  text("BASS", spacing, y + height * 0.4);
+  text("MID", spacing * 2, y + height * 0.4);
+  text("TREBLE", spacing * 3, y + height * 0.4);
 }
 
 // ユーザーが画面をクリックしたときにオーディオを開始する
@@ -41,6 +63,10 @@ function mousePressed() {
     mic = new p5.AudioIn();
     mic.start();
     
+    // FFTを初期化し、入力をマイクに設定
+    fft = new p5.FFT();
+    fft.setInput(mic);
+
     // AudioContextを開始/再開する
     userStartAudio();
     
