@@ -3,38 +3,37 @@ import { EffectComposer } from 'https://cdn.skypack.dev/three@0.128.0/examples/j
 import { RenderPass } from 'https://cdn.skypack.dev/three@0.128.0/examples/jsm/postprocessing/RenderPass.js';
 import { ShaderPass } from 'https://cdn.skypack.dev/three@0.128.0/examples/jsm/postprocessing/ShaderPass.js';
 
-let scene, camera, renderer, cube, composer;
+let scene, camera, renderer, composer;
 let analyser, dataArray;
 let bass = 0, mid = 0, treble = 0;
+let time = 0;
+
+// --- Scene 1: Wavy Lines ---
+let linesGroup;
+const MAX_LINES = 20;
+const LINE_SEGMENTS = 120;
+
+// --- UTILITY FUNCTIONS ---
+const map = (value, start1, stop1, start2, stop2) => {
+  return start2 + (stop2 - start2) * ((value - start1) / (stop1 - start1));
+};
 
 // --- INITIALIZATION ---
 const init = () => {
-  // Scene
   scene = new THREE.Scene();
-
-  // Camera
   camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-  camera.position.z = 5;
+  camera.position.z = 10;
 
-  // Renderer
   renderer = new THREE.WebGLRenderer({ antialias: true });
   renderer.setSize(window.innerWidth, window.innerHeight);
   document.body.appendChild(renderer.domElement);
 
-  // A simple cube for testing audio reactivity
-  const geometry = new THREE.BoxGeometry(1, 1, 1);
-  const material = new THREE.MeshNormalMaterial();
-  cube = new THREE.Mesh(geometry, material);
-  scene.add(cube);
-
-  // Post-processing for Grain Effect
+  createWavyLinesScene();
   setupPostprocessing();
 
-  // Event Listeners
   window.addEventListener('resize', onWindowResize, false);
   document.body.addEventListener('click', startAudio, { once: true });
 
-  // Initial text prompt
   const startText = document.createElement('div');
   startText.innerHTML = 'Click to start audio';
   startText.id = 'start-text';
@@ -50,6 +49,21 @@ const init = () => {
   document.body.appendChild(startText);
 
   animate();
+};
+
+// --- SCENE SETUP ---
+const createWavyLinesScene = () => {
+  linesGroup = new THREE.Group();
+  for (let i = 0; i < MAX_LINES; i++) {
+    const positions = new Float32Array((LINE_SEGMENTS + 1) * 3);
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    const material = new THREE.LineBasicMaterial({ color: 0xffffff });
+    const line = new THREE.Line(geometry, material);
+    line.visible = false;
+    linesGroup.add(line);
+  }
+  scene.add(linesGroup);
 };
 
 // --- POST-PROCESSING SETUP ---
@@ -126,26 +140,54 @@ const updateAudio = () => {
     else trebleSum += dataArray[i];
   }
 
-  bass = (bassSum / (bassEndIndex + 1)) / 255;
-  mid = (midSum / (midEndIndex - bassEndIndex)) / 255;
-  treble = (trebleSum / (freqBinCount - midEndIndex -1)) / 255;
+  const bassDivisor = bassEndIndex + 1;
+  const midDivisor = midEndIndex - bassEndIndex;
+  const trebleDivisor = freqBinCount - midEndIndex - 1;
+
+  bass = (bassSum / bassDivisor) / 255;
+  mid = (midSum / midDivisor) / 255;
+  treble = (trebleSum / (trebleDivisor > 0 ? trebleDivisor : 1)) / 255;
+};
+
+const updateWavyLinesScene = () => {
+  const numLines = Math.floor(map(bass, 0, 1, 1, MAX_LINES));
+  const waveAmplitude = map(mid, 0, 1, 0.1, 2);
+  const noiseAmount = map(treble, 0, 1, 0, 0.5);
+
+  linesGroup.children.forEach((line, i) => {
+    if (i < numLines) {
+      line.visible = true;
+      const positions = line.geometry.attributes.position.array;
+      const yOffset = map(i, 0, MAX_LINES, -5, 5);
+
+      for (let j = 0; j <= LINE_SEGMENTS; j++) {
+        const x = map(j, 0, LINE_SEGMENTS, -10, 10);
+        const wave = Math.sin(time * 0.2 + x * 1.0 + i * 0.3) * waveAmplitude;
+        const glitch = (Math.random() - 0.5) * noiseAmount;
+        const y = yOffset + wave + glitch;
+        positions[j * 3] = x;
+        positions[j * 3 + 1] = y;
+        positions[j * 3 + 2] = 0;
+      }
+      line.geometry.attributes.position.needsUpdate = true;
+    } else {
+      line.visible = false;
+    }
+  });
 };
 
 // --- ANIMATION LOOP ---
 const animate = () => {
   requestAnimationFrame(animate);
+  time += 0.02;
 
-  updateAudio();
-
-  if (cube) {
-    const scale = 1 + bass * 2;
-    cube.scale.set(scale, scale, scale);
-    cube.rotation.x += mid * 0.05;
-    cube.rotation.y += mid * 0.05;
+  if (analyser) {
+    updateAudio();
+    updateWavyLinesScene();
   }
-  
+
   if (composer) {
-    composer.passes[1].uniforms.amount.value = treble * 0.15;
+    composer.passes[1].uniforms.amount.value = treble * 0.1;
     composer.render();
   }
 };
