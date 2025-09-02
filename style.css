@@ -1,0 +1,10 @@
+body {
+  margin: 0;
+  padding: 0;
+  background-color: #000;
+  overflow: hidden; /* スクロールバーを非表示にする */
+}
+
+canvas {
+  display: block; /* canvas下の余白を消す */
+}
