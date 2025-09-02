@@ -2,12 +2,29 @@ import * as THREE from 'https://cdn.skypack.dev/three@0.128.0/build/three.module
 import { EffectComposer } from 'https://cdn.skypack.dev/three@0.128.0/examples/jsm/postprocessing/EffectComposer.js';
 import { RenderPass } from 'https://cdn.skypack.dev/three@0.128.0/examples/jsm/postprocessing/RenderPass.js';
 import { ShaderPass } from 'https://cdn.skypack.dev/three@0.128.0/examples/jsm/postprocessing/ShaderPass.js';
+import { Pane } from 'https://cdn.jsdelivr.net/npm/tweakpane@4.0.3/dist/tweakpane.min.js';
 
 let scene, camera, renderer, composer;
 let analyser, dataArray;
 let bass = 0, mid = 0, treble = 0;
 let time = 0;
 let currentScene = 1;
+
+// --- Tweakpane Parameters ---
+const params = {
+  audio: {
+    bassSensitivity: 1.0,
+    midSensitivity: 1.0,
+    trebleSensitivity: 1.0,
+  },
+  visual: {
+    hue: 0.0,
+    brightness: 1.0,
+    grain: 0.05,
+    backgroundColor: '#000000',
+    foregroundColor: '#ffffff',
+  },
+};
 
 // --- Scene 1: Wavy Lines ---
 let linesGroup;
@@ -36,6 +53,7 @@ const init = () => {
   camera.position.z = 10;
 
   renderer = new THREE.WebGLRenderer({ antialias: true });
+  renderer.setPixelRatio(window.devicePixelRatio);
   renderer.setSize(window.innerWidth, window.innerHeight);
   document.body.appendChild(renderer.domElement);
 
@@ -43,6 +61,7 @@ const init = () => {
   createParticleScene();
   createPolygonScene();
   setupPostprocessing();
+  setupUI();
 
   window.addEventListener('resize', onWindowResize, false);
   document.addEventListener('keydown', onKeyDown, false);
@@ -65,6 +84,35 @@ const init = () => {
   animate();
 };
 
+// --- UI SETUP ---
+const setupUI = () => {
+  const pane = new Pane();
+
+  const audioFolder = pane.addFolder({ title: 'Audio Sensitivity' });
+  audioFolder.addBinding(params.audio, 'bassSensitivity', { min: 0, max: 5, step: 0.1, label: 'Bass' });
+  audioFolder.addBinding(params.audio, 'midSensitivity', { min: 0, max: 5, step: 0.1, label: 'Mid' });
+  audioFolder.addBinding(params.audio, 'trebleSensitivity', { min: 0, max: 5, step: 0.1, label: 'Treble' });
+
+  const visualFolder = pane.addFolder({ title: 'Visuals' });
+  visualFolder.addBinding(params.visual, 'grain', { min: 0, max: 0.5, step: 0.01 });
+  visualFolder.addBinding(params.visual, 'backgroundColor').on('change', (ev) => {
+    document.body.style.backgroundColor = ev.value;
+    renderer.setClearColor(ev.value);
+  });
+   visualFolder.addBinding(params.visual, 'foregroundColor').on('change', (ev) => {
+    const color = new THREE.Color(ev.value);
+    scene.traverse((obj) => {
+      if (obj.material && obj.material.color) {
+        obj.material.color.set(color);
+      }
+    });
+  });
+
+  const systemFolder = pane.addFolder({ title: 'System' });
+  systemFolder.addButton({ title: 'Toggle Fullscreen' }).on('click', toggleFullscreen);
+};
+
+
 // --- SCENE SETUP ---
 const createWavyLinesScene = () => {
   linesGroup = new THREE.Group();
@@ -72,7 +120,7 @@ const createWavyLinesScene = () => {
     const positions = new Float32Array((LINE_SEGMENTS + 1) * 3);
     const geometry = new THREE.BufferGeometry();
     geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-    const material = new THREE.LineBasicMaterial({ color: 0xffffff });
+    const material = new THREE.LineBasicMaterial({ color: params.visual.foregroundColor });
     const line = new THREE.Line(geometry, material);
     linesGroup.add(line);
   }
@@ -95,7 +143,7 @@ const createParticleScene = () => {
   geometry.setAttribute('lifespan', new THREE.BufferAttribute(lifespans, 1));
 
   const material = new THREE.PointsMaterial({
-    color: 0xffffff,
+    color: params.visual.foregroundColor,
     size: 0.1,
     blending: THREE.AdditiveBlending,
     transparent: true,
@@ -111,7 +159,7 @@ const createPolygonScene = () => {
   const geometry = new THREE.BufferGeometry();
   const positions = new Float32Array((POLYGON_SIDES + 1) * 3);
   geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-  const material = new THREE.LineBasicMaterial({ color: 0xffffff });
+  const material = new THREE.LineBasicMaterial({ color: params.visual.foregroundColor });
   polygon = new THREE.LineLoop(geometry, material);
   polygon.visible = false;
   scene.add(polygon);
@@ -195,9 +243,13 @@ const updateAudio = () => {
   const midDivisor = midEndIndex - bassEndIndex;
   const trebleDivisor = freqBinCount - midEndIndex - 1;
 
-  bass = (bassSum / bassDivisor) / 255;
-  mid = (midSum / midDivisor) / 255;
-  treble = (trebleSum / (trebleDivisor > 0 ? trebleDivisor : 1)) / 255;
+  bass = ((bassSum / bassDivisor) / 255) * params.audio.bassSensitivity;
+  mid = ((midSum / midDivisor) / 255) * params.audio.midSensitivity;
+  treble = ((trebleSum / (trebleDivisor > 0 ? trebleDivisor : 1)) / 255) * params.audio.trebleSensitivity;
+  
+  bass = Math.min(bass, 1.0);
+  mid = Math.min(mid, 1.0);
+  treble = Math.min(treble, 1.0);
 };
 
 const updateWavyLinesScene = () => {
@@ -318,20 +370,39 @@ const animate = () => {
   }
 
   if (composer) {
-    composer.passes[1].uniforms.amount.value = treble * 0.25 + 0.02;
+    composer.passes[1].uniforms.amount.value = params.visual.grain;
     composer.render();
   }
 };
 
 // --- EVENT LISTENERS ---
 const onWindowResize = () => {
-  camera.aspect = window.innerWidth / window.innerHeight;
-  camera.updateProjectionMatrix();
-  renderer.setSize(window.innerWidth, window.innerHeight);
-  composer.setSize(window.innerWidth, window.innerHeight);
+  // Use a timeout to ensure the browser has finished its resizing logic
+  setTimeout(() => {
+    // The console.log can be removed later, it's here for debugging.
+    console.log(`Resizing to ${window.innerWidth}x${window.innerHeight}`);
+    
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    
+    renderer.setPixelRatio(window.devicePixelRatio);
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    composer.setSize(window.innerWidth, window.innerHeight);
+
+    // Force a render call right after resizing
+    if (composer) {
+      composer.render();
+    }
+  }, 0); // A 0ms delay is enough to push this to the next event cycle
 };
 
 const onKeyDown = (event) => {
+  if (event.target.tagName === 'INPUT') return;
+
+  if (event.key === 'f') {
+    toggleFullscreen();
+  }
+
   linesGroup.visible = false;
   particleSystem.visible = false;
   polygon.visible = false;
@@ -345,6 +416,16 @@ const onKeyDown = (event) => {
   } else if (event.key === '3') {
     currentScene = 3;
     polygon.visible = true;
+  }
+};
+
+const toggleFullscreen = () => {
+  if (!document.fullscreenElement) {
+    document.documentElement.requestFullscreen();
+  } else {
+    if (document.exitFullscreen) {
+      document.exitFullscreen();
+    }
   }
 };
 
