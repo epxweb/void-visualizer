@@ -112,20 +112,105 @@ const setupPostprocessing = () => {
       'tDiffuse': { value: null },
       'amount': { value: 0.05 }
     },
-    vertexShader: `...`, // (omitted for brevity)
-    fragmentShader: `...` // (omitted for brevity)
+    vertexShader: `
+      varying vec2 vUv;
+      void main() {
+        vUv = uv;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      }
+    `,
+    fragmentShader: `
+      uniform sampler2D tDiffuse;
+      uniform float amount;
+      varying vec2 vUv;
+
+      float random(vec2 st) {
+        return fract(sin(dot(st.xy, vec2(12.9898, 78.233))) * 43758.5453123);
+      }
+
+      void main() {
+        vec4 color = texture2D(tDiffuse, vUv);
+        float noise = random(vUv + fract(sin(gl_FragCoord.x * gl_FragCoord.y) * 1000.0)) * amount;
+        gl_FragColor = vec4(color.rgb + noise, color.a);
+      }
+    `
   };
+
   const grainPass = new ShaderPass(grainShader);
   composer.addPass(grainPass);
 };
 
 // --- AUDIO SETUP ---
-const startAudio = async () => { /* ... */ };
+const startAudio = async () => {
+  const startText = document.getElementById('start-text');
+  if (startText) startText.remove();
+
+  try {
+    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    const source = audioContext.createMediaStreamSource(stream);
+    analyser = audioContext.createAnalyser();
+    analyser.fftSize = 256;
+    source.connect(analyser);
+    dataArray = new Uint8Array(analyser.frequencyBinCount);
+    console.log('Audio setup complete.');
+  } catch (err) {
+    console.error('Error setting up audio:', err);
+  }
+};
 
 // --- UPDATE FUNCTIONS ---
-const updateAudio = () => { /* ... */ };
+const updateAudio = () => {
+  if (!analyser) return;
 
-const updateWavyLinesScene = () => { /* ... */ };
+  analyser.getByteFrequencyData(dataArray);
+
+  const freqBinCount = analyser.frequencyBinCount;
+  const bassEndIndex = Math.floor(freqBinCount * 0.2);
+  const midEndIndex = Math.floor(freqBinCount * 0.5);
+
+  let bassSum = 0, midSum = 0, trebleSum = 0;
+  for (let i = 0; i < freqBinCount; i++) {
+    if (i <= bassEndIndex) bassSum += dataArray[i];
+    else if (i <= midEndIndex) midSum += dataArray[i];
+    else trebleSum += dataArray[i];
+  }
+
+  const bassDivisor = bassEndIndex + 1;
+  const midDivisor = midEndIndex - bassEndIndex;
+  const trebleDivisor = freqBinCount - midEndIndex - 1;
+
+  bass = (bassSum / bassDivisor) / 255;
+  mid = (midSum / midDivisor) / 255;
+  treble = (trebleSum / (trebleDivisor > 0 ? trebleDivisor : 1)) / 255;
+};
+
+const updateWavyLinesScene = () => {
+  const numLines = Math.floor(map(bass, 0, 1, 1, MAX_LINES));
+  const waveAmplitude = map(mid, 0, 1, 0.1, 2);
+  const noiseAmount = map(treble, 0, 1, 0, 0.5);
+
+  linesGroup.children.forEach((line, i) => {
+    if (i < numLines) {
+      line.visible = true;
+      const positions = line.geometry.attributes.position.array;
+      const yOffset = map(i, 0, MAX_LINES, -5, 5);
+
+      for (let j = 0; j <= LINE_SEGMENTS; j++) {
+        const x = map(j, 0, LINE_SEGMENTS, -10, 10);
+        const wave = Math.sin(time * 0.2 + x * 1.0 + i * 0.3) * waveAmplitude;
+        const glitch = (Math.random() - 0.5) * noiseAmount;
+        const y = yOffset + wave + glitch;
+        positions[j * 3] = x;
+        positions[j * 3 + 1] = y;
+        positions[j * 3 + 2] = 0;
+      }
+      line.geometry.attributes.position.needsUpdate = true;
+    } else {
+      line.visible = false;
+    }
+  });
+};
 
 const updateParticleScene = () => {
   const beatThreshold = 0.3;
@@ -201,7 +286,12 @@ const animate = () => {
 };
 
 // --- EVENT LISTENERS ---
-const onWindowResize = () => { /* ... */ };
+const onWindowResize = () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  composer.setSize(window.innerWidth, window.innerHeight);
+};
 
 const onKeyDown = (event) => {
   if (event.key === '1') {
