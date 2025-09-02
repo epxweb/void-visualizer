@@ -187,7 +187,7 @@ const animate = () => {
   }
 
   if (composer) {
-    composer.passes[1].uniforms.amount.value = treble * 0.1;
+    composer.passes[1].uniforms.amount.value = treble * 0.25 + 0.02;
     composer.render();
   }
 };
