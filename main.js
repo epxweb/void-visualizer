@@ -224,7 +224,8 @@ const updateParticleScene = () => {
   const velocities = particleSystem.geometry.attributes.velocity.array;
   const lifespans = particleSystem.geometry.attributes.lifespan.array;
 
-  const speedFactor = map(mid, 0, 1, 0.98, 1.02);
+  // Make particles fade slightly over time
+  const speedFactor = 0.995;
   particleSystem.material.size = map(treble, 0, 1, 0.05, 0.25);
 
   for (let i = 0; i < MAX_PARTICLES; i++) {
@@ -254,7 +255,8 @@ const emitParticles = (count) => {
     positions[pIndex * 3 + 2] = 0;
 
     const angle = Math.random() * 2 * Math.PI;
-    const power = Math.random() * 0.08 + 0.02;
+    // Increase the power significantly
+    const power = Math.random() * 0.25 + 0.1;
     velocities[pIndex * 3] = Math.cos(angle) * power;
     velocities[pIndex * 3 + 1] = Math.sin(angle) * power;
 
