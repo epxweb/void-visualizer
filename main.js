@@ -94,7 +94,7 @@ const setupPostprocessing = () => {
 
       void main() {
         vec4 color = texture2D(tDiffuse, vUv);
-        float noise = (random(vUv + fract(sin(gl_FragCoord.x * gl_FragCoord.y) * 1000.0)) - 0.5) * amount;
+        float noise = random(vUv + fract(sin(gl_FragCoord.x * gl_FragCoord.y) * 1000.0)) * amount;
         gl_FragColor = vec4(color.rgb + noise, color.a);
       }
     `
