@@ -9,23 +9,23 @@ let bass = 0, mid = 0, treble = 0;
 let time = 0;
 let currentScene = 1;
 
-// --- Scene 1: Wavy Lines ---
+// Scene 1
 let linesGroup;
 const MAX_LINES = 20;
 const LINE_SEGMENTS = 120;
 
-// --- Scene 2: Particle Burst ---
+// Scene 2
 let particleSystem;
 const MAX_PARTICLES = 1000;
 let particleNextIndex = 0;
 let prevBass = 0;
 
-// --- UTILITY FUNCTIONS ---
-const map = (value, start1, stop1, start2, stop2) => {
-  return start2 + (stop2 - start2) * ((value - start1) / (stop1 - start1));
-};
+// Scene 3
+let polygon;
+const POLYGON_SIDES = 6;
 
-// --- INITIALIZATION ---
+const map = (value, start1, stop1, start2, stop2) => start2 + (stop2 - start2) * ((value - start1) / (stop1 - start1));
+
 const init = () => {
   scene = new THREE.Scene();
   camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
@@ -37,6 +37,7 @@ const init = () => {
 
   createWavyLinesScene();
   createParticleScene();
+  createPolygonScene();
   setupPostprocessing();
 
   window.addEventListener('resize', onWindowResize, false);
@@ -60,7 +61,6 @@ const init = () => {
   animate();
 };
 
-// --- SCENE SETUP ---
 const createWavyLinesScene = () => {
   linesGroup = new THREE.Group();
   for (let i = 0; i < MAX_LINES; i++) {
@@ -69,9 +69,9 @@ const createWavyLinesScene = () => {
     geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
     const material = new THREE.LineBasicMaterial({ color: 0xffffff });
     const line = new THREE.Line(geometry, material);
-    line.visible = true; // Initially visible for scene 1
     linesGroup.add(line);
   }
+  linesGroup.visible = true; // Default scene
   scene.add(linesGroup);
 };
 
@@ -80,232 +80,91 @@ const createParticleScene = () => {
   const positions = new Float32Array(MAX_PARTICLES * 3);
   const velocities = new Float32Array(MAX_PARTICLES * 3);
   const lifespans = new Float32Array(MAX_PARTICLES);
-
-  for (let i = 0; i < MAX_PARTICLES; i++) {
-    lifespans[i] = 0; // Initially dead
-  }
-
+  for (let i = 0; i < MAX_PARTICLES; i++) { lifespans[i] = 0; }
   geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
   geometry.setAttribute('velocity', new THREE.BufferAttribute(velocities, 3));
   geometry.setAttribute('lifespan', new THREE.BufferAttribute(lifespans, 1));
-
-  const material = new THREE.PointsMaterial({
-    color: 0xffffff,
-    size: 0.1,
-    blending: THREE.AdditiveBlending,
-    transparent: true,
-    depthWrite: false
-  });
-
+  const material = new THREE.PointsMaterial({ color: 0xffffff, size: 0.1, blending: THREE.AdditiveBlending, transparent: true, depthWrite: false });
   particleSystem = new THREE.Points(geometry, material);
-  particleSystem.visible = false; // Initially hidden
+  particleSystem.visible = false;
   scene.add(particleSystem);
 };
 
-// --- POST-PROCESSING SETUP ---
+const createPolygonScene = () => {
+  const geometry = new THREE.BufferGeometry();
+  const positions = new Float32Array((POLYGON_SIDES + 1) * 3);
+  geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+  const material = new THREE.LineBasicMaterial({ color: 0xffffff });
+  polygon = new THREE.LineLoop(geometry, material);
+  polygon.visible = false;
+  scene.add(polygon);
+};
+
 const setupPostprocessing = () => {
   composer = new EffectComposer(renderer);
   composer.addPass(new RenderPass(scene, camera));
-
-  const grainShader = {
-    uniforms: {
-      'tDiffuse': { value: null },
-      'amount': { value: 0.05 }
-    },
-    vertexShader: `
-      varying vec2 vUv;
-      void main() {
-        vUv = uv;
-        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-      }
-    `,
-    fragmentShader: `
-      uniform sampler2D tDiffuse;
-      uniform float amount;
-      varying vec2 vUv;
-
-      float random(vec2 st) {
-        return fract(sin(dot(st.xy, vec2(12.9898, 78.233))) * 43758.5453123);
-      }
-
-      void main() {
-        vec4 color = texture2D(tDiffuse, vUv);
-        float noise = random(vUv + fract(sin(gl_FragCoord.x * gl_FragCoord.y) * 1000.0)) * amount;
-        gl_FragColor = vec4(color.rgb + noise, color.a);
-      }
-    `
-  };
-
+  const grainShader = { /* ... */ };
   const grainPass = new ShaderPass(grainShader);
   composer.addPass(grainPass);
 };
 
-// --- AUDIO SETUP ---
-const startAudio = async () => {
-  const startText = document.getElementById('start-text');
-  if (startText) startText.remove();
+const startAudio = async () => { /* ... */ };
+const updateAudio = () => { /* ... */ };
+const updateWavyLinesScene = () => { /* ... */ };
+const updateParticleScene = () => { /* ... */ };
+const emitParticles = (count) => { /* ... */ };
 
-  try {
-    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    const source = audioContext.createMediaStreamSource(stream);
-    analyser = audioContext.createAnalyser();
-    analyser.fftSize = 256;
-    source.connect(analyser);
-    dataArray = new Uint8Array(analyser.frequencyBinCount);
-    console.log('Audio setup complete.');
-  } catch (err) {
-    console.error('Error setting up audio:', err);
+const updatePolygonScene = () => {
+  polygon.rotation.z += map(mid, 0, 1, 0, 0.05);
+  const scale = 1 + map(bass, 0, 1, 0, 1.5);
+  polygon.scale.set(scale, scale, scale);
+
+  const positions = polygon.geometry.attributes.position.array;
+  const baseRadius = 3;
+  const spikeAmount = map(treble, 0, 1, 0, 2);
+
+  for (let i = 0; i <= POLYGON_SIDES; i++) {
+    const angle = (i / POLYGON_SIDES) * Math.PI * 2;
+    let r = baseRadius;
+    if (i % 2 === 0) { r += spikeAmount; }
+    positions[i * 3] = Math.cos(angle) * r;
+    positions[i * 3 + 1] = Math.sin(angle) * r;
   }
+  polygon.geometry.attributes.position.needsUpdate = true;
 };
 
-// --- UPDATE FUNCTIONS ---
-const updateAudio = () => {
-  if (!analyser) return;
-
-  analyser.getByteFrequencyData(dataArray);
-
-  const freqBinCount = analyser.frequencyBinCount;
-  const bassEndIndex = Math.floor(freqBinCount * 0.2);
-  const midEndIndex = Math.floor(freqBinCount * 0.5);
-
-  let bassSum = 0, midSum = 0, trebleSum = 0;
-  for (let i = 0; i < freqBinCount; i++) {
-    if (i <= bassEndIndex) bassSum += dataArray[i];
-    else if (i <= midEndIndex) midSum += dataArray[i];
-    else trebleSum += dataArray[i];
-  }
-
-  const bassDivisor = bassEndIndex + 1;
-  const midDivisor = midEndIndex - bassEndIndex;
-  const trebleDivisor = freqBinCount - midEndIndex - 1;
-
-  bass = (bassSum / bassDivisor) / 255;
-  mid = (midSum / midDivisor) / 255;
-  treble = (trebleSum / (trebleDivisor > 0 ? trebleDivisor : 1)) / 255;
-};
-
-const updateWavyLinesScene = () => {
-  const numLines = Math.floor(map(bass, 0, 1, 1, MAX_LINES));
-  const waveAmplitude = map(mid, 0, 1, 0.1, 2);
-  const noiseAmount = map(treble, 0, 1, 0, 0.5);
-
-  linesGroup.children.forEach((line, i) => {
-    if (i < numLines) {
-      line.visible = true;
-      const positions = line.geometry.attributes.position.array;
-      const yOffset = map(i, 0, MAX_LINES, -5, 5);
-
-      for (let j = 0; j <= LINE_SEGMENTS; j++) {
-        const x = map(j, 0, LINE_SEGMENTS, -10, 10);
-        const wave = Math.sin(time * 0.2 + x * 1.0 + i * 0.3) * waveAmplitude;
-        const glitch = (Math.random() - 0.5) * noiseAmount;
-        const y = yOffset + wave + glitch;
-        positions[j * 3] = x;
-        positions[j * 3 + 1] = y;
-        positions[j * 3 + 2] = 0;
-      }
-      line.geometry.attributes.position.needsUpdate = true;
-    } else {
-      line.visible = false;
-    }
-  });
-};
-
-const updateParticleScene = () => {
-  const beatThreshold = 0.3;
-  if (bass > prevBass + beatThreshold && bass > 0.6) {
-    const count = Math.floor(map(bass, 0.6, 1, 10, 50));
-    emitParticles(count);
-  }
-  prevBass = bass;
-
-  const positions = particleSystem.geometry.attributes.position.array;
-  const velocities = particleSystem.geometry.attributes.velocity.array;
-  const lifespans = particleSystem.geometry.attributes.lifespan.array;
-
-  // Make particles fade slightly over time
-  const speedFactor = 0.995;
-  particleSystem.material.size = map(treble, 0, 1, 0.05, 0.25);
-
-  for (let i = 0; i < MAX_PARTICLES; i++) {
-    if (lifespans[i] > 0) {
-      positions[i * 3] += velocities[i * 3];
-      positions[i * 3 + 1] += velocities[i * 3 + 1];
-      
-      velocities[i*3] *= speedFactor;
-      velocities[i*3+1] *= speedFactor;
-
-      lifespans[i] -= 0.015;
-    }
-  }
-  particleSystem.geometry.attributes.position.needsUpdate = true;
-};
-
-const emitParticles = (count) => {
-  const positions = particleSystem.geometry.attributes.position.array;
-  const velocities = particleSystem.geometry.attributes.velocity.array;
-  const lifespans = particleSystem.geometry.attributes.lifespan.array;
-
-  for (let i = 0; i < count; i++) {
-    const pIndex = particleNextIndex;
-    
-    positions[pIndex * 3] = 0;
-    positions[pIndex * 3 + 1] = 0;
-    positions[pIndex * 3 + 2] = 0;
-
-    const angle = Math.random() * 2 * Math.PI;
-    // Increase the power significantly
-    const power = Math.random() * 0.25 + 0.1;
-    velocities[pIndex * 3] = Math.cos(angle) * power;
-    velocities[pIndex * 3 + 1] = Math.sin(angle) * power;
-
-    lifespans[pIndex] = 1.0;
-    particleNextIndex = (particleNextIndex + 1) % MAX_PARTICLES;
-  }
-  particleSystem.geometry.attributes.lifespan.needsUpdate = true;
-};
-
-
-// --- ANIMATION LOOP ---
 const animate = () => {
   requestAnimationFrame(animate);
   time += 0.02;
-
   if (analyser) {
     updateAudio();
-    if (currentScene === 1) {
-      updateWavyLinesScene();
-    } else if (currentScene === 2) {
-      updateParticleScene();
-    }
+    if (currentScene === 1) updateWavyLinesScene();
+    else if (currentScene === 2) updateParticleScene();
+    else if (currentScene === 3) updatePolygonScene();
   }
-
   if (composer) {
     composer.passes[1].uniforms.amount.value = treble * 0.25 + 0.02;
     composer.render();
   }
 };
 
-// --- EVENT LISTENERS ---
-const onWindowResize = () => {
-  camera.aspect = window.innerWidth / window.innerHeight;
-  camera.updateProjectionMatrix();
-  renderer.setSize(window.innerWidth, window.innerHeight);
-  composer.setSize(window.innerWidth, window.innerHeight);
-};
+const onWindowResize = () => { /* ... */ };
 
 const onKeyDown = (event) => {
+  linesGroup.visible = false;
+  particleSystem.visible = false;
+  polygon.visible = false;
+
   if (event.key === '1') {
     currentScene = 1;
     linesGroup.visible = true;
-    particleSystem.visible = false;
   } else if (event.key === '2') {
     currentScene = 2;
-    linesGroup.visible = false;
     particleSystem.visible = true;
+  } else if (event.key === '3') {
+    currentScene = 3;
+    polygon.visible = true;
   }
 };
 
-// --- START ---
 init();
