@@ -1,4 +1,5 @@
 import * as THREE from 'https://cdn.skypack.dev/three@0.128.0/build/three.module.js';
+import { map } from '../core/utils.js';
 
 /**
  * PulsingPolygonSceneクラス
@@ -38,9 +39,6 @@ export class PulsingPolygonScene {
    */
   update(audioData) {
     const { bass, mid, treble } = audioData;
-    const map = (value, start1, stop1, start2, stop2) => {
-        return start2 + (stop2 - start2) * ((value - start1) / (stop1 - start1));
-    };
 
     this.polygon.rotation.z += map(mid, 0, 1, 0, 0.05);
 
@@ -77,5 +75,14 @@ export class PulsingPolygonScene {
 
   hide() {
     this.polygon.visible = false;
+  }
+
+  /**
+   * このシーンに関連するすべてのThree.jsオブジェクトを解放する。
+   */
+  dispose() {
+    this.polygon.geometry.dispose();
+    this.polygon.material.dispose();
+    this.threeScene.remove(this.polygon);
   }
 }

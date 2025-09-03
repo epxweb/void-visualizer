@@ -1,4 +1,5 @@
 import * as THREE from 'https://cdn.skypack.dev/three@0.128.0/build/three.module.js';
+import { map } from '../core/utils.js';
 
 /**
  * WavyLinesSceneクラス
@@ -48,11 +49,6 @@ export class WavyLinesScene {
   update(audioData, time) {
     const { bass, mid, treble } = audioData;
 
-    // Utility function (map)をクラス内に定義
-    const map = (value, start1, stop1, start2, stop2) => {
-      return start2 + (stop2 - start2) * ((value - start1) / (stop1 - start1));
-    };
-
     const numLines = Math.floor(map(bass, 0, 1, 1, this.MAX_LINES));
     const waveAmplitude = map(mid, 0, 1, 0.1, 2);
     const noiseAmount = map(treble, 0, 1, 0, 0.5);
@@ -101,5 +97,16 @@ export class WavyLinesScene {
    */
   hide() {
     this.linesGroup.visible = false;
+  }
+
+  /**
+   * このシーンに関連するすべてのThree.jsオブジェクトを解放する。
+   */
+  dispose() {
+    this.linesGroup.children.forEach(line => {
+      line.geometry.dispose();
+      line.material.dispose();
+    });
+    this.threeScene.remove(this.linesGroup);
   }
 }

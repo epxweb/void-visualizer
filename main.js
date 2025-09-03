@@ -11,7 +11,7 @@ import { PulsingPolygonScene } from './scenes/PulsingPolygon.js';
 import { Transitioner } from './core/Transitioner.js';
 import { FadeShader } from './shaders/FadeShader.js';
 
-let scene, camera, renderer, composer;
+let scene, camera, renderer, composer, pane;
 let analyser, dataArray;
 let bass = 0, mid = 0, treble = 0;
 let time = 0;
@@ -35,18 +35,21 @@ const sceneManager = {
   lastSwitchTime: 0,
 
   init(threeScene, params) {
-    this.availableScenes['Wavy Lines'] = new WavyLinesScene(threeScene, params);
-    this.availableScenes['Particle Burst'] = new ParticleBurstScene(threeScene, params);
-    this.availableScenes['Pulsing Polygon'] = new PulsingPolygonScene(threeScene, params);
+    // availableScenesにはクラス（設計図）を格納
+    this.availableScenes['Wavy Lines'] = WavyLinesScene;
+    this.availableScenes['Particle Burst'] = ParticleBurstScene;
+    this.availableScenes['Pulsing Polygon'] = PulsingPolygonScene;
 
     const sceneKeys = Object.keys(this.availableScenes);
+    // 各スロットに独立したインスタンスを生成
     for (let i = 0; i < 5; i++) {
-      this.activeSlots[i] = this.availableScenes[sceneKeys[i % sceneKeys.length]];
+      const SceneClass = this.availableScenes[sceneKeys[i % sceneKeys.length]];
+      this.activeSlots[i] = new SceneClass(threeScene, params);
+      this.activeSlots[i].hide(); // まずはすべて非表示
     }
-    for (const key in this.availableScenes) this.availableScenes[key].hide();
     
     this.setCurrentSlot(0);
-    this.activeSlots[0].show();
+    this.activeSlots[0].show(); // 最初のスロットだけ表示
   },
 
   update(audioData, time) {
@@ -59,7 +62,7 @@ const sceneManager = {
   },
 
   switchTo(slotIndex) {
-    if (slotIndex < 0 || slotIndex >= this.activeSlots.length) return;
+    if (slotIndex < 0 || slotIndex >= this.activeSlots.length || slotIndex === this.currentSlotIndex) return;
     const fromScene = this.activeSlots[this.currentSlotIndex];
     const toScene = this.activeSlots[slotIndex];
     
@@ -78,11 +81,12 @@ const sceneManager = {
   },
 
   updateForegroundColor(color) {
-    for (const key in this.availableScenes) {
-      if (this.availableScenes[key].updateForegroundColor) {
-        this.availableScenes[key].updateForegroundColor(color);
-      }
-    }
+    // アクティブなスロットのインスタンスの色を更新
+    this.activeSlots.forEach(sceneInstance => {
+        if (sceneInstance && sceneInstance.updateForegroundColor) {
+            sceneInstance.updateForegroundColor(color);
+        }
+    });
   }
 };
 
@@ -90,7 +94,7 @@ const init = () => {
   scene = new THREE.Scene();
   camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
   camera.position.z = 10;
-  renderer = new THREE.WebGLRenderer({ antialias: true });
+  renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
   renderer.setPixelRatio(window.devicePixelRatio);
   renderer.setSize(window.innerWidth, window.innerHeight);
   document.body.appendChild(renderer.domElement);
@@ -113,7 +117,7 @@ const init = () => {
 };
 
 const setupUI = () => {
-  const pane = new Pane();
+  pane = new Pane();
   const audioFolder = pane.addFolder({ title: 'Audio Sensitivity' });
   audioFolder.addBinding(params.audio, 'bassSensitivity', { min: 0, max: 5, step: 0.1, label: 'Bass' });
   audioFolder.addBinding(params.audio, 'midSensitivity', { min: 0, max: 5, step: 0.1, label: 'Mid' });
@@ -122,8 +126,8 @@ const setupUI = () => {
   const visualFolder = pane.addFolder({ title: 'Visuals' });
   visualFolder.addBinding(params.visual, 'grain', { min: 0, max: 0.5, step: 0.01 });
   visualFolder.addBinding(params.visual, 'backgroundColor').on('change', (ev) => {
-    document.body.style.backgroundColor = ev.value;
-    renderer.setClearColor(new THREE.Color(ev.value));
+    // 背景色設定はレンダラーのクリアカラーにのみ影響させる
+    renderer.setClearColor(new THREE.Color(ev.value), params.visual.backgroundColor === 'transparent' ? 0 : 1);
   });
   visualFolder.addBinding(params.visual, 'foregroundColor').on('change', (ev) => {
     sceneManager.updateForegroundColor(new THREE.Color(ev.value));
@@ -132,12 +136,46 @@ const setupUI = () => {
   const sceneFolder = pane.addFolder({ title: 'Scene Slots' });
   const sceneOptions = Object.keys(sceneManager.availableScenes).map(name => ({ text: name, value: name }));
   const slotParams = {};
+
+  // slotParamsの初期化
   for (let i = 0; i < 5; i++) {
-    slotParams[`Slot ${i + 1}`] = sceneManager.activeSlots[i] ? Object.keys(sceneManager.availableScenes).find(key => sceneManager.availableScenes[key] === sceneManager.activeSlots[i]) : sceneOptions[0].value;
+    const sceneInstance = sceneManager.activeSlots[i];
+    const sceneName = Object.keys(sceneManager.availableScenes).find(key => sceneManager.availableScenes[key] === sceneInstance.constructor);
+    slotParams[`Slot ${i + 1}`] = sceneName;
   }
+
+  // UIスロットのイベントリスナー設定
   for (let i = 1; i <= 5; i++) {
     sceneFolder.addBinding(slotParams, `Slot ${i}`, { options: sceneOptions }).on('change', (ev) => {
-      sceneManager.activeSlots[i - 1] = sceneManager.availableScenes[ev.value];
+      const slotIndex = i - 1;
+      const oldScene = sceneManager.activeSlots[slotIndex];
+
+      // 1. 古いシーンを破棄
+      if (oldScene && oldScene.dispose) {
+        oldScene.dispose();
+      }
+
+      // 2. 新しいシーンのインスタンスを生成
+      const NewSceneClass = sceneManager.availableScenes[ev.value];
+      const newScene = new NewSceneClass(scene, params);
+      sceneManager.activeSlots[slotIndex] = newScene;
+
+      // 3. もし現在アクティブなスロットを変更した場合は新しいシーンを表示、それ以外は非表示
+      if (slotIndex === sceneManager.currentSlotIndex) {
+        // 現在のスロットが変更された場合、即座に新しいシーンに切り替える
+        const fromScene = oldScene; // トランジション元は古いシーン
+        const toScene = newScene;   // トランジション先は新しいシーン
+        
+        // 古いシーンを非表示にし、新しいシーンを表示状態にする
+        fromScene.hide();
+        toScene.show();
+
+        // トランジションは行わず、即座にカレントスロットを更新する
+        sceneManager.setCurrentSlot(slotIndex);
+
+      } else {
+        newScene.hide();
+      }
     });
   }
 
@@ -183,7 +221,9 @@ const startAudio = async () => {
     analyser.fftSize = 256;
     source.connect(analyser);
     dataArray = new Uint8Array(analyser.frequencyBinCount);
-  } catch (err) { console.error('Error setting up audio:', err); }
+  } catch (err) { 
+    console.log("Audio setup failed. This can happen if you don't grant microphone permissions.");
+  }
 };
 
 const updateAudio = () => {
@@ -282,6 +322,9 @@ const onWindowResize = () => {
 const onKeyDown = (event) => {
   if (event.target.tagName === 'INPUT') return;
   if (event.key === 'f') toggleFullscreen();
+  if (event.key === 'h') {
+    if (pane) pane.hidden = !pane.hidden;
+  }
   if (event.key >= '1' && event.key <= '5') {
     sceneManager.switchTo(parseInt(event.key) - 1);
   }

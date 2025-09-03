@@ -1,4 +1,5 @@
 import * as THREE from 'https://cdn.skypack.dev/three@0.128.0/build/three.module.js';
+import { map } from '../core/utils.js';
 
 /**
  * ParticleBurstSceneクラス
@@ -57,9 +58,6 @@ export class ParticleBurstScene {
    */
   update(audioData) {
     const { bass, treble } = audioData;
-    const map = (value, start1, stop1, start2, stop2) => {
-        return start2 + (stop2 - start2) * ((value - start1) / (stop1 - start1));
-    };
 
     const beatThreshold = 0.3;
     if (bass > this.prevBass + beatThreshold && bass > 0.6) {
@@ -130,5 +128,14 @@ export class ParticleBurstScene {
 
   hide() {
     this.particleSystem.visible = false;
+  }
+
+  /**
+   * このシーンに関連するすべてのThree.jsオブジェクトを解放する。
+   */
+  dispose() {
+    this.particleSystem.geometry.dispose();
+    this.particleSystem.material.dispose();
+    this.threeScene.remove(this.particleSystem);
   }
 }
