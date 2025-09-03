@@ -6,7 +6,6 @@ import { Pane } from 'https://cdn.jsdelivr.net/npm/tweakpane@4.0.3/dist/tweakpan
 
 // --- モジュールとシェーダーをインポート ---
 import { WavyLinesScene } from './scenes/WavyLines.js';
-import { ParticleBurstScene } from './scenes/ParticleBurst.js';
 import { PulsingPolygonScene } from './scenes/PulsingPolygon.js';
 import { InfiniteTunnelScene } from './scenes/InfiniteTunnel.js';
 import { RotatingRingsScene } from './scenes/RotatingRings.js';
@@ -40,7 +39,6 @@ const sceneManager = {
   init(threeScene, params) {
     // availableScenesにはクラス（設計図）を格納
     this.availableScenes['Wavy Lines'] = WavyLinesScene;
-    this.availableScenes['Particle Burst'] = ParticleBurstScene;
     this.availableScenes['Pulsing Polygon'] = PulsingPolygonScene;
     this.availableScenes['Infinite Tunnel'] = InfiniteTunnelScene;
     this.availableScenes['Rotating Rings'] = RotatingRingsScene;
