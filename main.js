@@ -4,11 +4,15 @@ import { RenderPass } from 'https://cdn.skypack.dev/three@0.128.0/examples/jsm/p
 import { ShaderPass } from 'https://cdn.skypack.dev/three@0.128.0/examples/jsm/postprocessing/ShaderPass.js';
 import { Pane } from 'https://cdn.jsdelivr.net/npm/tweakpane@4.0.3/dist/tweakpane.min.js';
 
+// --- モジュール化されたシーンをインポート ---
+import { WavyLinesScene } from './scenes/WavyLines.js';
+import { ParticleBurstScene } from './scenes/ParticleBurst.js';
+import { PulsingPolygonScene } from './scenes/PulsingPolygon.js';
+
 let scene, camera, renderer, composer;
 let analyser, dataArray;
 let bass = 0, mid = 0, treble = 0;
 let time = 0;
-let currentScene = 1;
 
 // --- Tweakpane Parameters ---
 const params = {
@@ -18,32 +22,71 @@ const params = {
     trebleSensitivity: 1.0,
   },
   visual: {
-    hue: 0.0,
-    brightness: 1.0,
     grain: 0.05,
     backgroundColor: '#000000',
     foregroundColor: '#ffffff',
   },
 };
 
-// --- Scene 1: Wavy Lines ---
-let linesGroup;
-const MAX_LINES = 20;
-const LINE_SEGMENTS = 120;
+// --- シーンマネージャー ---
+const sceneManager = {
+  availableScenes: {},      // 利用可能な全シーンのインスタンスを格納
+  activeSlots: [],          // 5つのスロットにセットされたシーンを格納
+  currentSlotIndex: 0,      // 現在表示中のスロット番号
 
-// --- Scene 2: Particle Burst ---
-let particleSystem;
-const MAX_PARTICLES = 1000;
-let particleNextIndex = 0;
-let prevBass = 0;
+  // 利用可能なシーンをすべて初期化する
+  init(threeScene, params) {
+    this.availableScenes['Wavy Lines'] = new WavyLinesScene(threeScene, params);
+    this.availableScenes['Particle Burst'] = new ParticleBurstScene(threeScene, params);
+    this.availableScenes['Pulsing Polygon'] = new PulsingPolygonScene(threeScene, params);
+    // ... 新しいシーンを追加した場合はここにも追記 ...
 
-// --- Scene 3: Pulsing Polygon ---
-let polygon;
-const POLYGON_SIDES = 6;
+    // デフォルトで最初のシーンをスロットに割り当てる
+    const sceneKeys = Object.keys(this.availableScenes);
+    for (let i = 0; i < 5; i++) {
+        this.activeSlots[i] = this.availableScenes[sceneKeys[i % sceneKeys.length]];
+    }
 
-// --- UTILITY FUNCTIONS ---
-const map = (value, start1, stop1, start2, stop2) => {
-  return start2 + (stop2 - start2) * ((value - start1) / (stop1 - start1));
+    // すべてのシーンを一旦非表示にする
+    for (const key in this.availableScenes) {
+        this.availableScenes[key].hide();
+    }
+
+    // 最初のシーンを表示状態にする
+    this.switchTo(0);
+  },
+
+  // 現在のシーンを更新する
+  update(audioData, time) {
+    if (this.activeSlots[this.currentSlotIndex]) {
+      this.activeSlots[this.currentSlotIndex].update(audioData, time);
+    }
+  },
+
+  // 指定したスロット番号のシーンに切り替える
+  switchTo(slotIndex) {
+    if (slotIndex < 0 || slotIndex >= this.activeSlots.length) return;
+
+    // 現在のシーンを非表示にする
+    if (this.activeSlots[this.currentSlotIndex]) {
+      this.activeSlots[this.currentSlotIndex].hide();
+    }
+
+    // 新しいシーンを表示する
+    this.currentSlotIndex = slotIndex;
+    if (this.activeSlots[this.currentSlotIndex]) {
+      this.activeSlots[this.currentSlotIndex].show();
+    }
+  },
+  
+  // すべてのシーンの前景色を更新する
+  updateForegroundColor(color) {
+    for (const key in this.availableScenes) {
+      if (this.availableScenes[key].updateForegroundColor) {
+        this.availableScenes[key].updateForegroundColor(color);
+      }
+    }
+  }
 };
 
 // --- INITIALIZATION ---
@@ -56,10 +99,10 @@ const init = () => {
   renderer.setPixelRatio(window.devicePixelRatio);
   renderer.setSize(window.innerWidth, window.innerHeight);
   document.body.appendChild(renderer.domElement);
+  
+  // SceneManagerを初期化
+  sceneManager.init(scene, params);
 
-  createWavyLinesScene();
-  createParticleScene();
-  createPolygonScene();
   setupPostprocessing();
   setupUI();
 
@@ -97,72 +140,47 @@ const setupUI = () => {
   visualFolder.addBinding(params.visual, 'grain', { min: 0, max: 0.5, step: 0.01 });
   visualFolder.addBinding(params.visual, 'backgroundColor').on('change', (ev) => {
     document.body.style.backgroundColor = ev.value;
-    renderer.setClearColor(ev.value);
+    renderer.setClearColor(new THREE.Color(ev.value));
   });
    visualFolder.addBinding(params.visual, 'foregroundColor').on('change', (ev) => {
     const color = new THREE.Color(ev.value);
-    scene.traverse((obj) => {
-      if (obj.material && obj.material.color) {
-        obj.material.color.set(color);
+    sceneManager.updateForegroundColor(color);
+  });
+  
+  // --- Scene Slot UI ---
+  const sceneFolder = pane.addFolder({ title: 'Scene Slots' });
+  const sceneOptions = Object.keys(sceneManager.availableScenes).map(name => ({
+    text: name,
+    value: name
+  }));
+
+  const slotParams = {};
+  for (let i = 0; i < 5; i++) {
+    slotParams[`Slot ${i + 1}`] = sceneManager.activeSlots[i] ? 
+        Object.keys(sceneManager.availableScenes).find(key => sceneManager.availableScenes[key] === sceneManager.activeSlots[i])
+        : sceneOptions[0].value;
+  }
+
+  for (let i = 1; i <= 5; i++) {
+    sceneFolder.addBinding(slotParams, `Slot ${i}`, {
+      options: sceneOptions
+    }).on('change', (ev) => {
+      // ドロップダウンが変更されたら、対応するスロットのシーンを入れ替える
+      const oldScene = sceneManager.activeSlots[i - 1];
+      const newScene = sceneManager.availableScenes[ev.value];
+      
+      if(oldScene !== newScene) {
+          if (sceneManager.currentSlotIndex === i - 1) {
+              oldScene.hide();
+              newScene.show();
+          }
+          sceneManager.activeSlots[i - 1] = newScene;
       }
     });
-  });
+  }
 
   const systemFolder = pane.addFolder({ title: 'System' });
   systemFolder.addButton({ title: 'Toggle Fullscreen' }).on('click', toggleFullscreen);
-};
-
-
-// --- SCENE SETUP ---
-const createWavyLinesScene = () => {
-  linesGroup = new THREE.Group();
-  for (let i = 0; i < MAX_LINES; i++) {
-    const positions = new Float32Array((LINE_SEGMENTS + 1) * 3);
-    const geometry = new THREE.BufferGeometry();
-    geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-    const material = new THREE.LineBasicMaterial({ color: params.visual.foregroundColor });
-    const line = new THREE.Line(geometry, material);
-    linesGroup.add(line);
-  }
-  linesGroup.visible = true; // Default scene
-  scene.add(linesGroup);
-};
-
-const createParticleScene = () => {
-  const geometry = new THREE.BufferGeometry();
-  const positions = new Float32Array(MAX_PARTICLES * 3);
-  const velocities = new Float32Array(MAX_PARTICLES * 3);
-  const lifespans = new Float32Array(MAX_PARTICLES);
-
-  for (let i = 0; i < MAX_PARTICLES; i++) {
-    lifespans[i] = 0; // Initially dead
-  }
-
-  geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-  geometry.setAttribute('velocity', new THREE.BufferAttribute(velocities, 3));
-  geometry.setAttribute('lifespan', new THREE.BufferAttribute(lifespans, 1));
-
-  const material = new THREE.PointsMaterial({
-    color: params.visual.foregroundColor,
-    size: 0.1,
-    blending: THREE.AdditiveBlending,
-    transparent: true,
-    depthWrite: false
-  });
-
-  particleSystem = new THREE.Points(geometry, material);
-  particleSystem.visible = false; // Initially hidden
-  scene.add(particleSystem);
-};
-
-const createPolygonScene = () => {
-  const geometry = new THREE.BufferGeometry();
-  const positions = new Float32Array((POLYGON_SIDES + 1) * 3);
-  geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-  const material = new THREE.LineBasicMaterial({ color: params.visual.foregroundColor });
-  polygon = new THREE.LineLoop(geometry, material);
-  polygon.visible = false;
-  scene.add(polygon);
 };
 
 // --- POST-PROCESSING SETUP ---
@@ -252,107 +270,6 @@ const updateAudio = () => {
   treble = Math.min(treble, 1.0);
 };
 
-const updateWavyLinesScene = () => {
-  const numLines = Math.floor(map(bass, 0, 1, 1, MAX_LINES));
-  const waveAmplitude = map(mid, 0, 1, 0.1, 2);
-  const noiseAmount = map(treble, 0, 1, 0, 0.5);
-
-  linesGroup.children.forEach((line, i) => {
-    if (i < numLines) {
-      line.visible = true;
-      const positions = line.geometry.attributes.position.array;
-      const yOffset = map(i, 0, MAX_LINES, -5, 5);
-
-      for (let j = 0; j <= LINE_SEGMENTS; j++) {
-        const x = map(j, 0, LINE_SEGMENTS, -10, 10);
-        const wave = Math.sin(time * 0.2 + x * 1.0 + i * 0.3) * waveAmplitude;
-        const glitch = (Math.random() - 0.5) * noiseAmount;
-        const y = yOffset + wave + glitch;
-        positions[j * 3] = x;
-        positions[j * 3 + 1] = y;
-        positions[j * 3 + 2] = 0;
-      }
-      line.geometry.attributes.position.needsUpdate = true;
-    } else {
-      line.visible = false;
-    }
-  });
-};
-
-const updateParticleScene = () => {
-  const beatThreshold = 0.3;
-  if (bass > prevBass + beatThreshold && bass > 0.6) {
-    const count = Math.floor(map(bass, 0.6, 1, 10, 50));
-    emitParticles(count);
-  }
-  prevBass = bass;
-
-  const positions = particleSystem.geometry.attributes.position.array;
-  const velocities = particleSystem.geometry.attributes.velocity.array;
-  const lifespans = particleSystem.geometry.attributes.lifespan.array;
-
-  const speedFactor = 0.995;
-  particleSystem.material.size = map(treble, 0, 1, 0.05, 0.25);
-
-  for (let i = 0; i < MAX_PARTICLES; i++) {
-    if (lifespans[i] > 0) {
-      positions[i * 3] += velocities[i * 3];
-      positions[i * 3 + 1] += velocities[i * 3 + 1];
-      
-      velocities[i*3] *= speedFactor;
-      velocities[i*3+1] *= speedFactor;
-
-      lifespans[i] -= 0.015;
-    }
-  }
-  particleSystem.geometry.attributes.position.needsUpdate = true;
-};
-
-const emitParticles = (count) => {
-  const positions = particleSystem.geometry.attributes.position.array;
-  const velocities = particleSystem.geometry.attributes.velocity.array;
-  const lifespans = particleSystem.geometry.attributes.lifespan.array;
-
-  for (let i = 0; i < count; i++) {
-    const pIndex = particleNextIndex;
-    
-    positions[pIndex * 3] = 0;
-    positions[pIndex * 3 + 1] = 0;
-    positions[pIndex * 3 + 2] = 0;
-
-    const angle = Math.random() * 2 * Math.PI;
-    const power = Math.random() * 0.25 + 0.1;
-    velocities[pIndex * 3] = Math.cos(angle) * power;
-    velocities[pIndex * 3 + 1] = Math.sin(angle) * power;
-
-    lifespans[pIndex] = 1.0;
-    particleNextIndex = (particleNextIndex + 1) % MAX_PARTICLES;
-  }
-  particleSystem.geometry.attributes.lifespan.needsUpdate = true;
-};
-
-const updatePolygonScene = () => {
-  polygon.rotation.z += map(mid, 0, 1, 0, 0.05);
-
-  const scale = 1 + map(bass, 0, 1, 0, 1.5);
-  polygon.scale.set(scale, scale, scale);
-
-  const positions = polygon.geometry.attributes.position.array;
-  const baseRadius = 3;
-  const spikeAmount = map(treble, 0, 1, 0, 2);
-
-  for (let i = 0; i <= POLYGON_SIDES; i++) {
-    const angle = (i / POLYGON_SIDES) * Math.PI * 2;
-    let r = baseRadius;
-    if (i % 2 === 0) {
-      r += spikeAmount;
-    }
-    positions[i * 3] = Math.cos(angle) * r;
-    positions[i * 3 + 1] = Math.sin(angle) * r;
-  }
-  polygon.geometry.attributes.position.needsUpdate = true;
-};
-
 // --- ANIMATION LOOP ---
 const animate = () => {
   requestAnimationFrame(animate);
@@ -360,13 +277,8 @@ const animate = () => {
 
   if (analyser) {
     updateAudio();
-    if (currentScene === 1) {
-      updateWavyLinesScene();
-    } else if (currentScene === 2) {
-      updateParticleScene();
-    } else if (currentScene === 3) {
-      updatePolygonScene();
-    }
+    const audioData = { bass, mid, treble };
+    sceneManager.update(audioData, time);
   }
 
   if (composer) {
@@ -377,11 +289,7 @@ const animate = () => {
 
 // --- EVENT LISTENERS ---
 const onWindowResize = () => {
-  // Use a timeout to ensure the browser has finished its resizing logic
   setTimeout(() => {
-    // The console.log can be removed later, it's here for debugging.
-    console.log(`Resizing to ${window.innerWidth}x${window.innerHeight}`);
-    
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
     
@@ -389,11 +297,10 @@ const onWindowResize = () => {
     renderer.setSize(window.innerWidth, window.innerHeight);
     composer.setSize(window.innerWidth, window.innerHeight);
 
-    // Force a render call right after resizing
     if (composer) {
       composer.render();
     }
-  }, 0); // A 0ms delay is enough to push this to the next event cycle
+  }, 0);
 };
 
 const onKeyDown = (event) => {
@@ -403,19 +310,8 @@ const onKeyDown = (event) => {
     toggleFullscreen();
   }
 
-  linesGroup.visible = false;
-  particleSystem.visible = false;
-  polygon.visible = false;
-
-  if (event.key === '1') {
-    currentScene = 1;
-    linesGroup.visible = true;
-  } else if (event.key === '2') {
-    currentScene = 2;
-    particleSystem.visible = true;
-  } else if (event.key === '3') {
-    currentScene = 3;
-    polygon.visible = true;
+  if (event.key >= '1' && event.key <= '5') {
+    sceneManager.switchTo(parseInt(event.key) - 1);
   }
 };
 
