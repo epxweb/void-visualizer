@@ -8,6 +8,9 @@ import { Pane } from 'https://cdn.jsdelivr.net/npm/tweakpane@4.0.3/dist/tweakpan
 import { WavyLinesScene } from './scenes/WavyLines.js';
 import { ParticleBurstScene } from './scenes/ParticleBurst.js';
 import { PulsingPolygonScene } from './scenes/PulsingPolygon.js';
+import { InfiniteTunnelScene } from './scenes/InfiniteTunnel.js';
+import { RotatingRingsScene } from './scenes/RotatingRings.js';
+import { WarpingGridScene } from './scenes/WarpingGrid.js';
 import { Transitioner } from './core/Transitioner.js';
 import { FadeShader } from './shaders/FadeShader.js';
 
@@ -39,12 +42,15 @@ const sceneManager = {
     this.availableScenes['Wavy Lines'] = WavyLinesScene;
     this.availableScenes['Particle Burst'] = ParticleBurstScene;
     this.availableScenes['Pulsing Polygon'] = PulsingPolygonScene;
+    this.availableScenes['Infinite Tunnel'] = InfiniteTunnelScene;
+    this.availableScenes['Rotating Rings'] = RotatingRingsScene;
+    this.availableScenes['Warping Grid'] = WarpingGridScene;
 
     const sceneKeys = Object.keys(this.availableScenes);
     // 各スロットに独立したインスタンスを生成
     for (let i = 0; i < 5; i++) {
       const SceneClass = this.availableScenes[sceneKeys[i % sceneKeys.length]];
-      this.activeSlots[i] = new SceneClass(threeScene, params);
+      this.activeSlots[i] = new SceneClass(threeScene, params, camera);
       this.activeSlots[i].hide(); // まずはすべて非表示
     }
     
@@ -157,7 +163,7 @@ const setupUI = () => {
 
       // 2. 新しいシーンのインスタンスを生成
       const NewSceneClass = sceneManager.availableScenes[ev.value];
-      const newScene = new NewSceneClass(scene, params);
+      const newScene = new NewSceneClass(scene, params, camera);
       sceneManager.activeSlots[slotIndex] = newScene;
 
       // 3. もし現在アクティブなスロットを変更した場合は新しいシーンを表示、それ以外は非表示
