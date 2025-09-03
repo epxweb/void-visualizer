@@ -1,6 +1,7 @@
 # Void Visualizer v.1.0.0
 
-リアルタイム音声入力に反応する簡易VJ目的のWebアプリケーションです。DJ時にOBSのブラウザソースとして利用されることなどを想定しています。
+リアルタイム音声入力に反応する簡易VJ目的のWebアプリケーションです。
+DJ時にOBSのブラウザソースとして利用されることなどを想定しています。
 
 ## ✨ Features
 
@@ -52,7 +53,9 @@
 ## 📄 License
 
 Copyright (c) 2025 R-9 / EPX studio.
+
 This project is licensed under the GNU General Public License.
+
 This project utilizes third-party libraries under the following licenses:
 
 -   **Three.js**: [MIT License](https://github.com/mrdoob/three.js/blob/dev/LICENSE)
