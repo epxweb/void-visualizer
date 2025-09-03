@@ -13,6 +13,7 @@ let scene, camera, renderer, composer;
 let analyser, dataArray;
 let bass = 0, mid = 0, treble = 0;
 let time = 0;
+let clock = new THREE.Clock(); // 時間管理用のClockオブジェクト
 
 // --- Tweakpane Parameters ---
 const params = {
@@ -26,60 +27,65 @@ const params = {
     backgroundColor: '#000000',
     foregroundColor: '#ffffff',
   },
+  // --- 自動遷移用のパラメータを追加 ---
+  transition: {
+    auto: false, // 自動遷移を有効にするか
+    interval: 30, // 切り替え間隔（秒）
+  }
 };
 
 // --- シーンマネージャー ---
 const sceneManager = {
-  availableScenes: {},      // 利用可能な全シーンのインスタンスを格納
-  activeSlots: [],          // 5つのスロットにセットされたシーンを格納
-  currentSlotIndex: 0,      // 現在表示中のスロット番号
+  availableScenes: {},
+  activeSlots: [],
+  currentSlotIndex: 0,
+  lastSwitchTime: 0, // 最後にシーンが切り替わった時間を記録
 
-  // 利用可能なシーンをすべて初期化する
   init(threeScene, params) {
     this.availableScenes['Wavy Lines'] = new WavyLinesScene(threeScene, params);
     this.availableScenes['Particle Burst'] = new ParticleBurstScene(threeScene, params);
     this.availableScenes['Pulsing Polygon'] = new PulsingPolygonScene(threeScene, params);
-    // ... 新しいシーンを追加した場合はここにも追記 ...
 
-    // デフォルトで最初のシーンをスロットに割り当てる
     const sceneKeys = Object.keys(this.availableScenes);
     for (let i = 0; i < 5; i++) {
-        this.activeSlots[i] = this.availableScenes[sceneKeys[i % sceneKeys.length]];
+      this.activeSlots[i] = this.availableScenes[sceneKeys[i % sceneKeys.length]];
     }
 
-    // すべてのシーンを一旦非表示にする
     for (const key in this.availableScenes) {
-        this.availableScenes[key].hide();
+      this.availableScenes[key].hide();
     }
 
-    // 最初のシーンを表示状態にする
     this.switchTo(0);
   },
 
-  // 現在のシーンを更新する
   update(audioData, time) {
     if (this.activeSlots[this.currentSlotIndex]) {
       this.activeSlots[this.currentSlotIndex].update(audioData, time);
     }
   },
 
-  // 指定したスロット番号のシーンに切り替える
   switchTo(slotIndex) {
     if (slotIndex < 0 || slotIndex >= this.activeSlots.length) return;
 
-    // 現在のシーンを非表示にする
     if (this.activeSlots[this.currentSlotIndex]) {
       this.activeSlots[this.currentSlotIndex].hide();
     }
 
-    // 新しいシーンを表示する
     this.currentSlotIndex = slotIndex;
     if (this.activeSlots[this.currentSlotIndex]) {
       this.activeSlots[this.currentSlotIndex].show();
     }
+    
+    // 切り替え時間をリセット
+    this.lastSwitchTime = clock.getElapsedTime();
   },
-  
-  // すべてのシーンの前景色を更新する
+
+  // 次のスロットに切り替えるメソッド
+  switchToNext() {
+    const nextSlotIndex = (this.currentSlotIndex + 1) % this.activeSlots.length;
+    this.switchTo(nextSlotIndex);
+  },
+
   updateForegroundColor(color) {
     for (const key in this.availableScenes) {
       if (this.availableScenes[key].updateForegroundColor) {
@@ -100,7 +106,6 @@ const init = () => {
   renderer.setSize(window.innerWidth, window.innerHeight);
   document.body.appendChild(renderer.domElement);
   
-  // SceneManagerを初期化
   sceneManager.init(scene, params);
 
   setupPostprocessing();
@@ -147,7 +152,6 @@ const setupUI = () => {
     sceneManager.updateForegroundColor(color);
   });
   
-  // --- Scene Slot UI ---
   const sceneFolder = pane.addFolder({ title: 'Scene Slots' });
   const sceneOptions = Object.keys(sceneManager.availableScenes).map(name => ({
     text: name,
@@ -165,7 +169,6 @@ const setupUI = () => {
     sceneFolder.addBinding(slotParams, `Slot ${i}`, {
       options: sceneOptions
     }).on('change', (ev) => {
-      // ドロップダウンが変更されたら、対応するスロットのシーンを入れ替える
       const oldScene = sceneManager.activeSlots[i - 1];
       const newScene = sceneManager.availableScenes[ev.value];
       
@@ -178,6 +181,12 @@ const setupUI = () => {
       }
     });
   }
+
+  // --- 自動遷移UIを追加 ---
+  const transitionFolder = pane.addFolder({ title: 'Scene Transition' });
+  transitionFolder.addBinding(params.transition, 'auto', { label: 'Auto Transition' });
+  transitionFolder.addBinding(params.transition, 'interval', { label: 'Interval (sec)', min: 5, max: 180, step: 1 });
+
 
   const systemFolder = pane.addFolder({ title: 'System' });
   systemFolder.addButton({ title: 'Toggle Fullscreen' }).on('click', toggleFullscreen);
@@ -273,12 +282,20 @@ const updateAudio = () => {
 // --- ANIMATION LOOP ---
 const animate = () => {
   requestAnimationFrame(animate);
-  time += 0.02;
+  const elapsedTime = clock.getElapsedTime();
+  time += 0.02; // Keep for shaders if needed, but elapsedTime is better for logic
 
   if (analyser) {
     updateAudio();
     const audioData = { bass, mid, treble };
     sceneManager.update(audioData, time);
+  }
+  
+  // --- 自動遷移ロジック ---
+  if (params.transition.auto) {
+    if (elapsedTime - sceneManager.lastSwitchTime > params.transition.interval) {
+      sceneManager.switchToNext();
+    }
   }
 
   if (composer) {
