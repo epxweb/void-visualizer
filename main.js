@@ -12,6 +12,7 @@ import { RotatingRingsScene } from './scenes/RotatingRings.js';
 import { WarpingGridScene } from './scenes/WarpingGrid.js';
 import { Transitioner } from './core/Transitioner.js';
 import { FadeShader } from './shaders/FadeShader.js';
+import { StrobeShader } from './shaders/StrobeShader.js';
 
 let scene, camera, renderer, composer, pane;
 let analyser, dataArray;
@@ -21,12 +22,13 @@ let clock = new THREE.Clock();
 
 // --- レンダリングとトランジション用の変数 ---
 let transitioner = new Transitioner();
-let transitionPass;
+let transitionPass, strobePass, grainPass;
 let renderTargetA, renderTargetB;
 
 const params = {
   audio: { bassSensitivity: 1.0, midSensitivity: 1.0, trebleSensitivity: 1.0 },
-  visual: { grain: 0.05, backgroundColor: '#000000', foregroundColor: '#ffffff' },
+  visual: { grain: 0.1, backgroundColor: '#000000', foregroundColor: '#ffffff' },
+  strobe: { enable: true, sensitivity: 0.6, brightness: 0.05 },
   transition: { auto: false, interval: 30, duration: 1.5 }
 };
 
@@ -130,51 +132,46 @@ const setupUI = () => {
   const visualFolder = pane.addFolder({ title: 'Visuals' });
   visualFolder.addBinding(params.visual, 'grain', { min: 0, max: 0.5, step: 0.01 });
   visualFolder.addBinding(params.visual, 'backgroundColor').on('change', (ev) => {
-    // 背景色設定はレンダラーのクリアカラーにのみ影響させる
     renderer.setClearColor(new THREE.Color(ev.value), params.visual.backgroundColor === 'transparent' ? 0 : 1);
   });
   visualFolder.addBinding(params.visual, 'foregroundColor').on('change', (ev) => {
     sceneManager.updateForegroundColor(new THREE.Color(ev.value));
   });
+
+  visualFolder.addBinding(params.strobe, 'enable', { label: 'Strobe' });
+  visualFolder.addBinding(params.strobe, 'sensitivity', { label: 'Strobe Sensitivity', min: 0, max: 1.0, step: 0.05 });
+  visualFolder.addBinding(params.strobe, 'brightness', { label: 'Strobe Brightness', min: 0, max: 1.0, step: 0.05 });
   
   const sceneFolder = pane.addFolder({ title: 'Scene Slots' });
   const sceneOptions = Object.keys(sceneManager.availableScenes).map(name => ({ text: name, value: name }));
   const slotParams = {};
 
-  // slotParamsの初期化
   for (let i = 0; i < 5; i++) {
     const sceneInstance = sceneManager.activeSlots[i];
     const sceneName = Object.keys(sceneManager.availableScenes).find(key => sceneManager.availableScenes[key] === sceneInstance.constructor);
     slotParams[`Slot ${i + 1}`] = sceneName;
   }
 
-  // UIスロットのイベントリスナー設定
   for (let i = 1; i <= 5; i++) {
     sceneFolder.addBinding(slotParams, `Slot ${i}`, { options: sceneOptions }).on('change', (ev) => {
       const slotIndex = i - 1;
       const oldScene = sceneManager.activeSlots[slotIndex];
 
-      // 1. 古いシーンを破棄
       if (oldScene && oldScene.dispose) {
         oldScene.dispose();
       }
 
-      // 2. 新しいシーンのインスタンスを生成
       const NewSceneClass = sceneManager.availableScenes[ev.value];
       const newScene = new NewSceneClass(scene, params, camera);
       sceneManager.activeSlots[slotIndex] = newScene;
 
-      // 3. もし現在アクティブなスロットを変更した場合は新しいシーンを表示、それ以外は非表示
       if (slotIndex === sceneManager.currentSlotIndex) {
-        // 現在のスロットが変更された場合、即座に新しいシーンに切り替える
-        const fromScene = oldScene; // トランジション元は古いシーン
-        const toScene = newScene;   // トランジション先は新しいシーン
+        const fromScene = oldScene;
+        const toScene = newScene;
         
-        // 古いシーンを非表示にし、新しいシーンを表示状態にする
         fromScene.hide();
         toScene.show();
 
-        // トランジションは行わず、即座にカレントスロットを更新する
         sceneManager.setCurrentSlot(slotIndex);
 
       } else {
@@ -205,12 +202,15 @@ const setupPostprocessing = () => {
   transitionPass.enabled = false;
   composer.addPass(transitionPass);
 
+  strobePass = new ShaderPass(StrobeShader);
+  composer.addPass(strobePass);
+
   const grainShader = {
-    uniforms: { 'tDiffuse': { value: null }, 'amount': { value: 0.05 } },
+    uniforms: { 'tDiffuse': { value: null }, 'amount': { value: 0.1 } },
     vertexShader: `varying vec2 vUv; void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
     fragmentShader: `uniform sampler2D tDiffuse; uniform float amount; varying vec2 vUv; float random(vec2 st) { return fract(sin(dot(st.xy, vec2(12.9898, 78.233))) * 43758.5453123); } void main() { vec4 color = texture2D(tDiffuse, vUv); float noise = random(vUv + fract(sin(gl_FragCoord.x * gl_FragCoord.y) * 1000.0)) * amount; gl_FragColor = vec4(color.rgb + noise, color.a); }`
   };
-  const grainPass = new ShaderPass(grainShader);
+  grainPass = new ShaderPass(grainShader);
   composer.addPass(grainPass);
 };
 
@@ -261,6 +261,19 @@ const animate = () => {
     updateAudio();
     const audioData = { bass, mid, treble };
     sceneManager.update(audioData, time);
+
+    // --- Strobe Logic ---
+    if (params.strobe.enable) {
+        strobePass.enabled = true;
+        // Trigger strobe on bass hit, with a shorter cooldown (strobeTime > 0.2s)
+        if (bass > params.strobe.sensitivity && strobePass.uniforms.strobeTime.value > 0.2) {
+            strobePass.uniforms.strobeTime.value = 0.0;
+        }
+        strobePass.uniforms.strobeAlpha.value = params.strobe.brightness;
+        strobePass.uniforms.strobeTime.value += deltaTime;
+    } else {
+        strobePass.enabled = false;
+    }
   }
   
   if (params.transition.auto && !transitioner.isActive) {
@@ -269,30 +282,29 @@ const animate = () => {
     }
   }
 
+  // Update grain amount regardless of transition state
+  grainPass.uniforms.amount.value = params.visual.grain;
+
   if (transitioner.isActive) {
-    composer.passes[0].enabled = false;
+    composer.passes[0].enabled = false; // Disable base render pass
     transitionPass.enabled = true;
     
     transitioner.update(deltaTime, params.transition.duration);
     transitionPass.uniforms.mixRatio.value = transitioner.progress;
 
-    // --- ▼▼▼ ここからが修正箇所 ▼▼▼ ---
-
-    // 1. fromScene（元のシーン）だけを描画してテクスチャAに保存
+    // 1. Render fromScene to renderTargetA
     transitioner.toScene.hide();
     transitioner.fromScene.show();
     renderer.setRenderTarget(renderTargetA);
     renderer.render(scene, camera);
     transitionPass.uniforms.tDiffuse1.value = renderTargetA.texture;
     
-    // 2. toScene（次のシーン）だけを描画してテクスチャBに保存
+    // 2. Render toScene to renderTargetB
     transitioner.fromScene.hide();
     transitioner.toScene.show();
     renderer.setRenderTarget(renderTargetB);
     renderer.render(scene, camera);
     transitionPass.uniforms.tDiffuse2.value = renderTargetB.texture;
-
-    // --- ▲▲▲ ここまでが修正箇所 ▲▲▲ ---
 
     renderer.setRenderTarget(null);
     composer.render();
@@ -303,9 +315,8 @@ const animate = () => {
       transitioner.stop();
     }
   } else {
-    composer.passes[0].enabled = true;
+    composer.passes[0].enabled = true; // Enable base render pass
     transitionPass.enabled = false;
-    composer.passes[2].uniforms.amount.value = params.visual.grain;
     composer.render();
   }
 };
