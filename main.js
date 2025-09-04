@@ -29,7 +29,7 @@ const params = {
   audio: { bassSensitivity: 1.0, midSensitivity: 1.0, trebleSensitivity: 1.0 },
   visual: { grain: 0.1, backgroundColor: '#000000', foregroundColor: '#ffffff' },
   strobe: { enable: true, sensitivity: 0.6, brightness: 0.05 },
-  transition: { auto: false, interval: 30, duration: 1.5 }
+  transition: { auto: false, interval: 30, duration: 1.5, random: false }
 };
 
 const sceneManager = {
@@ -45,8 +45,9 @@ const sceneManager = {
     this.availableScenes['Infinite Tunnel'] = InfiniteTunnelScene;
     this.availableScenes['Rotating Rings'] = RotatingRingsScene;
     this.availableScenes['Warping Grid'] = WarpingGridScene;
+    this.availableScenes['Empty'] = null; // Emptyスロット用の定義
 
-    const sceneKeys = Object.keys(this.availableScenes);
+    const sceneKeys = Object.keys(this.availableScenes).filter(k => k !== 'Empty');
     // 各スロットに独立したインスタンスを生成
     for (let i = 0; i < 5; i++) {
       const SceneClass = this.availableScenes[sceneKeys[i % sceneKeys.length]];
@@ -60,8 +61,8 @@ const sceneManager = {
 
   update(audioData, time) {
     if (transitioner.isActive) {
-      transitioner.fromScene.update(audioData, time);
-      transitioner.toScene.update(audioData, time);
+      if(transitioner.fromScene) transitioner.fromScene.update(audioData, time);
+      if(transitioner.toScene) transitioner.toScene.update(audioData, time);
     } else if (this.activeSlots[this.currentSlotIndex]) {
       this.activeSlots[this.currentSlotIndex].update(audioData, time);
     }
@@ -72,12 +73,55 @@ const sceneManager = {
     const fromScene = this.activeSlots[this.currentSlotIndex];
     const toScene = this.activeSlots[slotIndex];
     
+    // Emptyへのトランジション、またはEmptyからのトランジションを許可
     const started = transitioner.start(fromScene, toScene, slotIndex);
     if (started) this.lastSwitchTime = clock.getElapsedTime();
   },
   
   switchToNext() {
-    const nextSlotIndex = (this.currentSlotIndex + 1) % this.activeSlots.length;
+    // 1. Get all non-empty slot indices
+    const availableSlots = [];
+    for (let i = 0; i < this.activeSlots.length; i++) {
+      if (this.activeSlots[i] !== null) {
+        availableSlots.push(i);
+      }
+    }
+
+    // If there are no scenes or only one scene to switch to, do nothing.
+    if (availableSlots.length < 2) {
+      return;
+    }
+
+    let nextSlotIndex;
+
+    if (params.transition.random) {
+      // --- Random transition ---
+      // Candidate slots are all available slots except the current one.
+      const candidates = availableSlots.filter(index => index !== this.currentSlotIndex);
+      
+      // If there are no candidates (e.g., only one active scene), do nothing.
+      if (candidates.length === 0) {
+        // This happens if the only available scene is the current one.
+        // We'll just switch to the next one in sequence in this edge case.
+        const currentIndexInAvailable = availableSlots.indexOf(this.currentSlotIndex);
+        const nextIndexInAvailable = (currentIndexInAvailable + 1) % availableSlots.length;
+        nextSlotIndex = availableSlots[nextIndexInAvailable];
+      } else {
+        const randomIndex = Math.floor(Math.random() * candidates.length);
+        nextSlotIndex = candidates[randomIndex];
+      }
+
+    } else {
+      // --- Sequential transition ---
+      // Find the position of the current slot in the list of available slots.
+      const currentIndexInAvailable = availableSlots.indexOf(this.currentSlotIndex);
+      
+      // The next slot is the next one in the available list, wrapping around.
+      // If current is Empty (-1), this correctly starts from the first available slot.
+      const nextIndexInAvailable = (currentIndexInAvailable + 1) % availableSlots.length;
+      nextSlotIndex = availableSlots[nextIndexInAvailable];
+    }
+
     this.switchTo(nextSlotIndex);
   },
   
@@ -140,7 +184,7 @@ const setupUI = () => {
 
   visualFolder.addBinding(params.strobe, 'enable', { label: 'Strobe' });
   visualFolder.addBinding(params.strobe, 'sensitivity', { label: 'Strobe Sensitivity', min: 0, max: 1.0, step: 0.05 });
-  visualFolder.addBinding(params.strobe, 'brightness', { label: 'Strobe Brightness', min: 0, max: 1.0, step: 0.05 });
+  visualFolder.addBinding(params.strobe, 'brightness', { label: 'Strobe Brightness', min: 0, max: 0.5, step: 0.05 });
   
   const sceneFolder = pane.addFolder({ title: 'Scene Slots' });
   const sceneOptions = Object.keys(sceneManager.availableScenes).map(name => ({ text: name, value: name }));
@@ -148,8 +192,12 @@ const setupUI = () => {
 
   for (let i = 0; i < 5; i++) {
     const sceneInstance = sceneManager.activeSlots[i];
-    const sceneName = Object.keys(sceneManager.availableScenes).find(key => sceneManager.availableScenes[key] === sceneInstance.constructor);
-    slotParams[`Slot ${i + 1}`] = sceneName;
+    if (sceneInstance) {
+        const sceneName = Object.keys(sceneManager.availableScenes).find(key => sceneManager.availableScenes[key] === sceneInstance.constructor);
+        slotParams[`Slot ${i + 1}`] = sceneName;
+    } else {
+        slotParams[`Slot ${i + 1}`] = 'Empty';
+    }
   }
 
   for (let i = 1; i <= 5; i++) {
@@ -162,26 +210,27 @@ const setupUI = () => {
       }
 
       const NewSceneClass = sceneManager.availableScenes[ev.value];
-      const newScene = new NewSceneClass(scene, params, camera);
+      const newScene = NewSceneClass ? new NewSceneClass(scene, params, camera) : null;
       sceneManager.activeSlots[slotIndex] = newScene;
 
       if (slotIndex === sceneManager.currentSlotIndex) {
         const fromScene = oldScene;
         const toScene = newScene;
         
-        fromScene.hide();
-        toScene.show();
+        if(fromScene) fromScene.hide();
+        if(toScene) toScene.show();
 
         sceneManager.setCurrentSlot(slotIndex);
 
       } else {
-        newScene.hide();
+        if(newScene) newScene.hide();
       }
     });
   }
 
   const transitionFolder = pane.addFolder({ title: 'Scene Transition' });
   transitionFolder.addBinding(params.transition, 'auto', { label: 'Auto Transition' });
+  transitionFolder.addBinding(params.transition, 'random', { label: 'Random Order' });
   transitionFolder.addBinding(params.transition, 'interval', { label: 'Interval (sec)', min: 5, max: 180, step: 1 });
   transitionFolder.addBinding(params.transition, 'duration', { label: 'Duration (sec)', min: 0.1, max: 5, step: 0.1 });
 
@@ -293,15 +342,15 @@ const animate = () => {
     transitionPass.uniforms.mixRatio.value = transitioner.progress;
 
     // 1. Render fromScene to renderTargetA
-    transitioner.toScene.hide();
-    transitioner.fromScene.show();
+    if(transitioner.fromScene) transitioner.fromScene.show();
+    if(transitioner.toScene) transitioner.toScene.hide();
     renderer.setRenderTarget(renderTargetA);
     renderer.render(scene, camera);
     transitionPass.uniforms.tDiffuse1.value = renderTargetA.texture;
     
     // 2. Render toScene to renderTargetB
-    transitioner.fromScene.hide();
-    transitioner.toScene.show();
+    if(transitioner.fromScene) transitioner.fromScene.hide();
+    if(transitioner.toScene) transitioner.toScene.show();
     renderer.setRenderTarget(renderTargetB);
     renderer.render(scene, camera);
     transitionPass.uniforms.tDiffuse2.value = renderTargetB.texture;
@@ -311,7 +360,7 @@ const animate = () => {
     
     if (transitioner.progress >= 1.0) {
       sceneManager.setCurrentSlot(transitioner.toSlotIndex);
-      transitioner.fromScene.hide();
+      if(transitioner.fromScene) transitioner.fromScene.hide();
       transitioner.stop();
     }
   } else {
