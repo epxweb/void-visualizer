@@ -9,7 +9,10 @@ import { WavyLinesScene } from './scenes/WavyLines.js';
 import { PulsingPolygonScene } from './scenes/PulsingPolygon.js';
 import { InfiniteTunnelScene } from './scenes/InfiniteTunnel.js';
 import { RotatingRingsScene } from './scenes/RotatingRings.js';
+import { WireframeMirrorballScene } from './scenes/WireframeMirrorball.js';
 import { WarpingGridScene } from './scenes/WarpingGrid.js';
+import { Pulsing3DGridScene } from './scenes/Pulsing3DGrid.js';
+import { CurveRacerScene } from './scenes/CurveRacer.js';
 import { Transitioner } from './core/Transitioner.js';
 import { FadeShader } from './shaders/FadeShader.js';
 import { StrobeShader } from './shaders/StrobeShader.js';
@@ -44,7 +47,10 @@ const sceneManager = {
     this.availableScenes['Pulsing Polygon'] = PulsingPolygonScene;
     this.availableScenes['Infinite Tunnel'] = InfiniteTunnelScene;
     this.availableScenes['Rotating Rings'] = RotatingRingsScene;
+    this.availableScenes['Wireframe Mirrorball'] = WireframeMirrorballScene;
     this.availableScenes['Warping Grid'] = WarpingGridScene;
+    this.availableScenes['Pulsing 3D Grid'] = Pulsing3DGridScene;
+    this.availableScenes['Curve Racer'] = CurveRacerScene;
     this.availableScenes['Empty'] = null; // Emptyスロット用の定義
 
     const sceneKeys = Object.keys(this.availableScenes).filter(k => k !== 'Empty');

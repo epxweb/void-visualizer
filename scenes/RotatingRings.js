@@ -22,7 +22,11 @@ export class RotatingRingsScene {
     this.NUM_RINGS = 10;
     this.RING_RESOLUTION = 64; // 円の滑らかさ
 
-    this.ringsGroup = new THREE.Group();
+    // ★ここから修正点★
+    this.mainGroup = new THREE.Group(); // 全体をまとめる親グループ
+    this.leftRingsGroup = new THREE.Group();
+    this.rightRingsGroup = new THREE.Group();
+    // ★ここまで修正点★
     this.init();
   }
 
@@ -30,6 +34,13 @@ export class RotatingRingsScene {
    * シーンの初期化処理。
    */
   init() {
+    // ★ここから修正点★
+    this.leftRingsGroup.position.x = -4; // 左側に配置
+    this.rightRingsGroup.position.x = 4;  // 右側に配置
+    this.mainGroup.add(this.leftRingsGroup);
+    this.mainGroup.add(this.rightRingsGroup);
+    // ★ここまで修正点★
+
     const material = new THREE.LineBasicMaterial({ color: new THREE.Color(this.params.visual.foregroundColor) });
 
     for (let i = 0; i < this.NUM_RINGS; i++) {
@@ -38,7 +49,6 @@ export class RotatingRingsScene {
       const positions = new Float32Array((this.RING_RESOLUTION + 1) * 3);
       geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
       
-      // positionsを保持
       const basePositions = new Float32Array((this.RING_RESOLUTION + 1) * 3);
 
       for (let j = 0; j <= this.RING_RESOLUTION; j++) {
@@ -51,18 +61,22 @@ export class RotatingRingsScene {
       geometry.attributes.position.needsUpdate = true;
       geometry.setDrawRange(0, this.RING_RESOLUTION + 1);
 
-
-      const ring = new THREE.Line(geometry, material); // LineLoopではなくLineを使う
-      
-      // 各リングに固有の回転速度と方向を持たせる
-      ring.userData = {
+      // ★ここから修正点★
+      // 左側のリングを作成
+      const leftRing = new THREE.Line(geometry, material);
+      leftRing.userData = {
         baseRotation: (Math.random() - 0.5) * 0.01,
-        basePositions: basePositions // 歪みの計算用に元の頂点情報を保持
+        basePositions: basePositions
       };
+      this.leftRingsGroup.add(leftRing);
 
-      this.ringsGroup.add(ring);
+      // 右側のリングを作成（ジオメトリとマテリアルは共有）
+      const rightRing = new THREE.Line(geometry, material);
+      rightRing.userData = leftRing.userData; // 動きを同じにするためにuserDataを共有
+      this.rightRingsGroup.add(rightRing);
+      // ★ここまで修正点★
     }
-    this.threeScene.add(this.ringsGroup);
+    this.threeScene.add(this.mainGroup);
   }
 
   /**
@@ -74,26 +88,34 @@ export class RotatingRingsScene {
 
     // 低域: 円の線の太さが脈動するように変化 -> 全体のスケールで表現
     const scale = 1 + map(bass, 0, 1, -0.5, 0.5);
-    this.ringsGroup.scale.set(scale, scale, scale);
+    // ★ここから修正点★
+    this.leftRingsGroup.scale.set(scale, scale, scale);
+    this.rightRingsGroup.scale.set(scale, scale, scale);
+    // ★ここまで修正点★
 
     const midSpeedFactor = map(mid, 0, 1, -2, 2);
     const trebleNoiseAmount = map(treble, 0, 1, 0, 0.3);
 
-    this.ringsGroup.children.forEach(ring => {
-      // 中域: 各円の回転速度や回転方向が変化
-      ring.rotation.z += ring.userData.baseRotation * midSpeedFactor;
-      
-      // 高域: 円周上にノイズやギザギザした乱れを加える
-      const positions = ring.geometry.attributes.position.array;
-      const basePositions = ring.userData.basePositions;
+    // ★ここから修正点★
+    // 両方のグループのリングを更新
+    [this.leftRingsGroup, this.rightRingsGroup].forEach(group => {
+        group.children.forEach(ring => {
+            // 中域: 各円の回転速度や回転方向が変化
+            ring.rotation.z += ring.userData.baseRotation * midSpeedFactor;
+            
+            // 高域: 円周上にノイズやギザギザした乱れを加える
+            const positions = ring.geometry.attributes.position.array;
+            const basePositions = ring.userData.basePositions;
 
-      for (let i = 0; i <= this.RING_RESOLUTION; i++) {
-        const noise = (Math.random() - 0.5) * trebleNoiseAmount;
-        positions[i * 3] = basePositions[i * 3] * (1 + noise);
-        positions[i * 3 + 1] = basePositions[i * 3 + 1] * (1 + noise);
-      }
-      ring.geometry.attributes.position.needsUpdate = true;
+            for (let i = 0; i <= this.RING_RESOLUTION; i++) {
+                const noise = (Math.random() - 0.5) * trebleNoiseAmount;
+                positions[i * 3] = basePositions[i * 3] * (1 + noise);
+                positions[i * 3 + 1] = basePositions[i * 3 + 1] * (1 + noise);
+            }
+            ring.geometry.attributes.position.needsUpdate = true;
+        });
     });
+    // ★ここまで修正点★
   }
 
   /**
@@ -102,32 +124,34 @@ export class RotatingRingsScene {
    */
   updateForegroundColor(color) {
     // 全てのリングのマテリアルは共通なので、一つだけ変更すればOK
-    if (this.ringsGroup.children.length > 0) {
-      this.ringsGroup.children[0].material.color.set(color);
+    if (this.leftRingsGroup.children.length > 0) {
+      this.leftRingsGroup.children[0].material.color.set(color);
     }
   }
 
   show() {
-    this.ringsGroup.visible = true;
+    this.mainGroup.visible = true;
   }
 
   hide() {
-    this.ringsGroup.visible = false;
+    this.mainGroup.visible = false;
   }
 
   /**
    * このシーンに関連するすべてのThree.jsオブジェクトを解放する。
    */
   dispose() {
-    const firstRingMaterial = this.ringsGroup.children.length > 0 ? this.ringsGroup.children[0].material : null;
+    const firstRingMaterial = this.leftRingsGroup.children.length > 0 ? this.leftRingsGroup.children[0].material : null;
     
-    this.ringsGroup.children.forEach(ring => {
+    // ジオメトリは共有されているので、片方のグループのリングだけ解放すればOK
+    this.leftRingsGroup.children.forEach(ring => {
       ring.geometry.dispose();
     });
+
     // マテリアルは全リングで共有しているので、一度だけ解放する
     if(firstRingMaterial) {
       firstRingMaterial.dispose();
     }
-    this.threeScene.remove(this.ringsGroup);
+    this.threeScene.remove(this.mainGroup);
   }
 }
