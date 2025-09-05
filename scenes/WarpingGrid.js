@@ -86,7 +86,7 @@ export class WarpingGridScene {
     // 高域: 格子の交点がランダムに明滅
     // トレブルが強いほど、点が明るく（不透明に）なる
     if (this.points) {
-        this.points.material.opacity = map(treble, 0, 1, 0, 1.0);
+        this.points.material.opacity = map(treble, 0, 1, 0, 2.0);
         this.points.material.size = map(treble, 0.2, 1, 0.1, 1); // サイズも少し変化させる
     }
   }

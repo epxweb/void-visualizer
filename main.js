@@ -35,7 +35,7 @@ let renderTargetA, renderTargetB;
 const params = {
   audio: { bassSensitivity: 1.0, midSensitivity: 1.0, trebleSensitivity: 1.0 },
   visual: { grain: 0.1, backgroundColor: '#000000', foregroundColor: '#ffffff' },
-  strobe: { enable: true, sensitivity: 0.6, brightness: 0.05 },
+  strobe: { enable: true, sensitivity: 0.4, brightness: 0.05 },
   transition: { auto: false, interval: 30, duration: 1.5, random: false },
   system: { backgroundFps: 60 }
 };
@@ -355,7 +355,8 @@ const renderFrame = () => {
     // --- Strobe Logic ---
     if (params.strobe.enable) {
         strobePass.enabled = true;
-        if (bass > params.strobe.sensitivity && strobePass.uniforms.strobeTime.value > 0.2) {
+        const threshold = 1.0 - params.strobe.sensitivity;
+        if (bass > threshold && strobePass.uniforms.strobeTime.value > 0.2) {
             strobePass.uniforms.strobeTime.value = 0.0;
         }
         strobePass.uniforms.strobeAlpha.value = params.strobe.brightness;

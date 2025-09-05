@@ -76,7 +76,7 @@ export class CurveRacerScene {
     this.racer.position.copy(newPosition);
     
     // 低域 (Bass): 滑走する円のサイズや輝度が変化
-    const scale = 1 + map(bass, 0, 1, 0, 1.5);
+    const scale = 1 + map(bass, 0, 1, 0, 2.5);
     this.racer.scale.set(scale, scale, scale);
 
     // 高域 (Treble): コース自体の形状が、ノイズによって細かく歪む

@@ -100,7 +100,7 @@ export class Pulsing3DGridScene {
 
 
     // 高域 (Treble): 各点の色や不透明度がランダムに明滅
-    this.points.material.opacity = map(treble, 0, 1, 0.3, 1.0);
+    this.points.material.opacity = map(treble, 0, 1, 0.6, 1.0);
     const colors = this.points.geometry.attributes.color.array;
     const trebleEffect = map(treble, 0.5, 1.0, 0, 1); // 高域が一定以上の場合に効果を発揮
 
