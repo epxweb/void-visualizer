@@ -23,6 +23,10 @@ let bass = 0, mid = 0, treble = 0;
 let time = 0;
 let clock = new THREE.Clock();
 
+let worker;
+let isPageActive = true;
+let animationFrameId = null;
+
 // --- レンダリングとトランジション用の変数 ---
 let transitioner = new Transitioner();
 let transitionPass, strobePass, grainPass;
@@ -32,7 +36,8 @@ const params = {
   audio: { bassSensitivity: 1.0, midSensitivity: 1.0, trebleSensitivity: 1.0 },
   visual: { grain: 0.1, backgroundColor: '#000000', foregroundColor: '#ffffff' },
   strobe: { enable: true, sensitivity: 0.6, brightness: 0.05 },
-  transition: { auto: false, interval: 30, duration: 1.5, random: false }
+  transition: { auto: false, interval: 30, duration: 1.5, random: false },
+  system: { backgroundFps: 60 }
 };
 
 const sceneManager = {
@@ -42,7 +47,6 @@ const sceneManager = {
   lastSwitchTime: 0,
 
   init(threeScene, params) {
-    // availableScenesにはクラス（設計図）を格納
     this.availableScenes['Wavy Lines'] = WavyLinesScene;
     this.availableScenes['Pulsing Polygon'] = PulsingPolygonScene;
     this.availableScenes['Infinite Tunnel'] = InfiniteTunnelScene;
@@ -79,13 +83,11 @@ const sceneManager = {
     const fromScene = this.activeSlots[this.currentSlotIndex];
     const toScene = this.activeSlots[slotIndex];
     
-    // Emptyへのトランジション、またはEmptyからのトランジションを許可
     const started = transitioner.start(fromScene, toScene, slotIndex);
     if (started) this.lastSwitchTime = clock.getElapsedTime();
   },
   
   switchToNext() {
-    // 1. Get all non-empty slot indices
     const availableSlots = [];
     for (let i = 0; i < this.activeSlots.length; i++) {
       if (this.activeSlots[i] !== null) {
@@ -93,7 +95,6 @@ const sceneManager = {
       }
     }
 
-    // If there are no scenes or only one scene to switch to, do nothing.
     if (availableSlots.length < 2) {
       return;
     }
@@ -101,14 +102,9 @@ const sceneManager = {
     let nextSlotIndex;
 
     if (params.transition.random) {
-      // --- Random transition ---
-      // Candidate slots are all available slots except the current one.
       const candidates = availableSlots.filter(index => index !== this.currentSlotIndex);
       
-      // If there are no candidates (e.g., only one active scene), do nothing.
       if (candidates.length === 0) {
-        // This happens if the only available scene is the current one.
-        // We'll just switch to the next one in sequence in this edge case.
         const currentIndexInAvailable = availableSlots.indexOf(this.currentSlotIndex);
         const nextIndexInAvailable = (currentIndexInAvailable + 1) % availableSlots.length;
         nextSlotIndex = availableSlots[nextIndexInAvailable];
@@ -118,12 +114,7 @@ const sceneManager = {
       }
 
     } else {
-      // --- Sequential transition ---
-      // Find the position of the current slot in the list of available slots.
       const currentIndexInAvailable = availableSlots.indexOf(this.currentSlotIndex);
-      
-      // The next slot is the next one in the available list, wrapping around.
-      // If current is Empty (-1), this correctly starts from the first available slot.
       const nextIndexInAvailable = (currentIndexInAvailable + 1) % availableSlots.length;
       nextSlotIndex = availableSlots[nextIndexInAvailable];
     }
@@ -137,7 +128,6 @@ const sceneManager = {
   },
 
   updateForegroundColor(color) {
-    // アクティブなスロットのインスタンスの色を更新
     this.activeSlots.forEach(sceneInstance => {
         if (sceneInstance && sceneInstance.updateForegroundColor) {
             sceneInstance.updateForegroundColor(color);
@@ -155,6 +145,7 @@ const init = () => {
   renderer.setSize(window.innerWidth, window.innerHeight);
   document.body.appendChild(renderer.domElement);
   
+  setupWorker();
   sceneManager.init(scene, params);
   setupPostprocessing();
   setupUI();
@@ -162,6 +153,7 @@ const init = () => {
   window.addEventListener('resize', onWindowResize, false);
   document.addEventListener('keydown', onKeyDown, false);
   document.body.addEventListener('click', startAudio, { once: true });
+  document.addEventListener('visibilitychange', handleVisibilityChange, false);
 
   const startText = document.createElement('div');
   startText.id = 'start-text';
@@ -169,7 +161,17 @@ const init = () => {
   Object.assign(startText.style, { position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', color: 'white', fontSize: '24px', fontFamily: 'sans-serif' });
   document.body.appendChild(startText);
 
-  animate();
+  startAnimationLoop();
+};
+
+const setupWorker = () => {
+    worker = new Worker('worker.js');
+    worker.onmessage = (e) => {
+        if (e.data === 'tick' && !isPageActive) {
+            renderFrame();
+        }
+    };
+    worker.postMessage({ type: 'update-fps', payload: { fps: params.system.backgroundFps } });
 };
 
 const setupUI = () => {
@@ -241,6 +243,16 @@ const setupUI = () => {
   transitionFolder.addBinding(params.transition, 'duration', { label: 'Duration (sec)', min: 0.1, max: 5, step: 0.1 });
 
   const systemFolder = pane.addFolder({ title: 'System' });
+  systemFolder.addBinding(params.system, 'backgroundFps', {
+      label: 'Background FPS',
+      options: [
+          { text: '15', value: 15 },
+          { text: '30', value: 30 },
+          { text: '60', value: 60 },
+      ]
+  }).on('change', (ev) => {
+      worker.postMessage({ type: 'update-fps', payload: { fps: ev.value } });
+  });
   systemFolder.addButton({ title: 'Toggle Fullscreen' }).on('click', toggleFullscreen);
 };
 
@@ -306,11 +318,34 @@ const updateAudio = () => {
   bass = Math.min(bass, 1.0); mid = Math.min(mid, 1.0); treble = Math.min(treble, 1.0);
 };
 
+const startAnimationLoop = () => {
+    if (isPageActive) {
+        if (animationFrameId) cancelAnimationFrame(animationFrameId);
+        animationFrameId = requestAnimationFrame(animate);
+    } else {
+        worker.postMessage({ type: 'start' });
+    }
+};
+
+const stopAnimationLoop = () => {
+    if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+        animationFrameId = null;
+    }
+    worker.postMessage({ type: 'stop' });
+};
+
 const animate = () => {
-  requestAnimationFrame(animate);
+  renderFrame();
+  if (isPageActive) {
+    animationFrameId = requestAnimationFrame(animate);
+  }
+};
+
+const renderFrame = () => {
   const deltaTime = clock.getDelta();
   const elapsedTime = clock.getElapsedTime();
-  time += 0.02;
+  time += deltaTime;
 
   if (analyser) {
     updateAudio();
@@ -320,7 +355,6 @@ const animate = () => {
     // --- Strobe Logic ---
     if (params.strobe.enable) {
         strobePass.enabled = true;
-        // Trigger strobe on bass hit, with a shorter cooldown (strobeTime > 0.2s)
         if (bass > params.strobe.sensitivity && strobePass.uniforms.strobeTime.value > 0.2) {
             strobePass.uniforms.strobeTime.value = 0.0;
         }
@@ -337,24 +371,21 @@ const animate = () => {
     }
   }
 
-  // Update grain amount regardless of transition state
   grainPass.uniforms.amount.value = params.visual.grain;
 
   if (transitioner.isActive) {
-    composer.passes[0].enabled = false; // Disable base render pass
+    composer.passes[0].enabled = false;
     transitionPass.enabled = true;
     
     transitioner.update(deltaTime, params.transition.duration);
     transitionPass.uniforms.mixRatio.value = transitioner.progress;
 
-    // 1. Render fromScene to renderTargetA
     if(transitioner.fromScene) transitioner.fromScene.show();
     if(transitioner.toScene) transitioner.toScene.hide();
     renderer.setRenderTarget(renderTargetA);
     renderer.render(scene, camera);
     transitionPass.uniforms.tDiffuse1.value = renderTargetA.texture;
     
-    // 2. Render toScene to renderTargetB
     if(transitioner.fromScene) transitioner.fromScene.hide();
     if(transitioner.toScene) transitioner.toScene.show();
     renderer.setRenderTarget(renderTargetB);
@@ -370,10 +401,22 @@ const animate = () => {
       transitioner.stop();
     }
   } else {
-    composer.passes[0].enabled = true; // Enable base render pass
+    composer.passes[0].enabled = true;
     transitionPass.enabled = false;
     composer.render();
   }
+};
+
+const handleVisibilityChange = () => {
+    if (document.hidden) {
+        isPageActive = false;
+        stopAnimationLoop();
+        startAnimationLoop();
+    } else {
+        isPageActive = true;
+        stopAnimationLoop();
+        startAnimationLoop();
+    }
 };
 
 const onWindowResize = () => {
