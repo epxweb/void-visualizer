@@ -22,6 +22,8 @@ let scene, camera, renderer, composer, pane;
 let audioContext, analyser, dataArray;
 let bass = 0, mid = 0, treble = 0;
 let time = 0;
+let lastBass = 0, lastMid = 0, lastTreble = 0;
+let bassAttack = 0, midAttack = 0, trebleAttack = 0;
 let clock = new THREE.Clock();
 
 let worker;
@@ -353,8 +355,8 @@ const updateAudio = () => {
   if (!analyser) return;
   analyser.getByteFrequencyData(dataArray);
   const freqBinCount = analyser.frequencyBinCount;
-  const bassEndIndex = Math.floor(freqBinCount * 0.2);
-  const midEndIndex = Math.floor(freqBinCount * 0.5);
+  const bassEndIndex = Math.floor(freqBinCount * 0.1);
+  const midEndIndex = Math.floor(freqBinCount * 0.3);
   let bassSum = 0, midSum = 0, trebleSum = 0;
   for (let i = 0; i < freqBinCount; i++) {
     if (i <= bassEndIndex) bassSum += dataArray[i];
@@ -365,6 +367,14 @@ const updateAudio = () => {
   mid = ((midSum / (midEndIndex - bassEndIndex)) / 255) * params.audio.midSensitivity;
   treble = ((trebleSum / (freqBinCount - midEndIndex)) / 255) * params.audio.trebleSensitivity;
   bass = Math.min(bass, 1.0); mid = Math.min(mid, 1.0); treble = Math.min(treble, 1.0);
+  // Attack detection
+  bassAttack = Math.max(0, bass - lastBass);
+  midAttack = Math.max(0, mid - lastMid);
+  trebleAttack = Math.max(0, treble - lastTreble);
+
+  lastBass = bass;
+  lastMid = mid;
+  lastTreble = treble;
 };
 
 const startAnimationLoop = () => {
@@ -396,7 +406,7 @@ const renderFrame = () => {
 
   if (analyser) {
     updateAudio();
-    const audioData = { bass, mid, treble };
+    const audioData = { bass, mid, treble, bassAttack, midAttack, trebleAttack };
     sceneManager.update(audioData, time);
 
     if (params.strobe.enable) {

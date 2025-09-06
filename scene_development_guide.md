@@ -35,7 +35,10 @@ export class MyNewScene {
 3.  **`update(audioData, time)`**
 
       - 毎フレーム呼び出される、シーンの心臓部です。
-      - `audioData` (`{ bass, mid, treble }`) と `time`（経過時間）を元に、オブジェクトのサイズ、位置、色などを変更するアニメーション処理を記述します。
+      - `audioData` と `time`（経過時間）を元に、オブジェクトのサイズ、位置、色などを変更するアニメーション処理を記述します。
+      - **`audioData`オブジェクトには、以下のプロパティが含まれます:**
+          - `bass`, `mid`, `treble`: 各周波数帯の**現在のエネルギー量**（0.0〜1.0）。滑らかな動きや持続的な変化に適しています。
+          - `bassAttack`, `midAttack`, `trebleAttack`: 各周波数帯の**瞬間的なエネルギー量の増加分**（0.0以上）。キックドラムのアタックなど、瞬間的なイベントに反応する、メリハリのある動きの実装に最適です。
 
 4.  **`show()` / `hide()`**
 
@@ -66,6 +69,42 @@ export class MyNewScene {
 #### 3.2. `THREE.Group`の利用
 
 シーン内で複数のオブジェクト（`Mesh`, `Line`など）を生成する場合、それらを`THREE.Group`のインスタンスにまとめ、そのGroupをシーンのルートオブジェクトとして扱うことを強く推奨します。これにより、`show()` / `hide()`メソッドではGroupの`visible`プロパティを切り替えるだけ、`dispose()`メソッドではGroupの子要素をループ処理するだけで済むようになり、コードの保守性が向上します。
+
+#### 3.3. アタック値を利用した効果的なアニメーション
+
+`bassAttack`などのアタック値を利用することで、より音楽に同期したダイナミックな表現が可能になります。推奨される実装パターンは以下の通りです。
+
+1.  `constructor`で、エフェクトの強度を保持するためのプロパティを初期化します。
+2.  `update`メソッド内で、アタック値が閾値を超えたら、そのプロパティに値をセット（または加算）します。
+3.  アニメーション計算で、そのプロパティ値をエフェクトの強度として利用します。
+4.  `update`メソッドの最後に、プロパティ値を一定の割合で減衰させます。これにより、エフェクトが数フレームかけて自然に消えるようになります。
+
+```javascript
+// 例: WavyLines.js での実装パターン
+
+class MyScene {
+  constructor(...) {
+    // ...
+    this.bassAttackEffect = 0; // 1. エフェクト強度を保持するプロパティ
+  }
+
+  update(audioData, time) {
+    const { bassAttack } = audioData;
+
+    // 2. アタックを検出したらエフェクト値を更新
+    if (bassAttack > 0.1) {
+      this.bassAttackEffect = bassAttack * 2.0;
+    }
+    
+    // 3. アニメーション計算にエフェクト値を利用
+    const yOffset = baseOffset + this.bassAttackEffect;
+    // ...
+
+    // 4. 最後にエフェクト値を減衰させる
+    this.bassAttackEffect *= 0.90;
+  }
+}
+```
 
 ### 4. 任意の共通メソッド
 

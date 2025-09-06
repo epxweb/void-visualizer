@@ -27,8 +27,6 @@ export class PulsingPolygonScene {
     this.echoPool = [];
     this.activeEchos = [];
 
-    this.lastBass = 0; // Bassのアタック検知用
-
     this.init();
   }
 
@@ -82,7 +80,7 @@ export class PulsingPolygonScene {
    * @param {object} audioData - 解析されたオーディオデータ { bass, mid, treble }。
    */
   update(audioData) {
-    const { bass, mid, treble } = audioData;
+    const { bass, mid, treble, bassAttack } = audioData;
 
     // グループ全体を回転
     this.polygonGroup.rotation.z += map(mid, 0, 1, 0, 0.05);
@@ -96,10 +94,9 @@ export class PulsingPolygonScene {
     });
 
     // Bassのアタックを検知してエコーをトリガー
-    if (bass > this.lastBass + 0.1 && bass > 0.6) {
+    if (bassAttack > 0.05) { // 0.15 is a threshold, can be adjusted
         this.triggerEcho();
     }
-    this.lastBass = bass;
 
     // アクティブなエコーのアニメーション
     this.updateEchos();
