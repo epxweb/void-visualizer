@@ -1,4 +1,4 @@
-# Void Visualizer v.1.3.0
+# Void Visualizer v.1.4.0
 
 リアルタイム音声入力に反応する、DJのためのミニマルな簡易VJ Webアプリです。  
 ブラウザで開いて、DJ時にOBSのウィンドウキャプチャのソースとして利用することを想定しています。  
@@ -21,6 +21,8 @@ Due to the nature of audio input, a loopback function on your audio interface ma
     **UI Control Panel**: Allows real-time adjustment of various parameters (sensitivity, effect intensity, colors, etc.).
 -   **シーン管理機能**: 最大5つのシーンをスロットに登録し、手動または自動でスムーズに切り替えることができます。  
     **Scene Management**: Register up to five scenes in slots and switch between them smoothly, either manually or automatically.
+-   **設定の保存・読み込み機能**: 各種パラメータやスロットのシーン構成をJSONファイルとしてローカルに保存し、いつでも復元できます。これにより、お気に入りの設定をプリセットとして管理可能です。  
+    **Save/Load Settings**: Save your current parameter and scene slot configurations as a local JSON file, allowing you to restore them at any time. This enables you to manage your favorite settings as presets.
 -   **オートシーン再生**: 1から5までのスロットに登録したEmptyを除く各シーンをシーケンシャルに連続再生します。シーン遷移のインターバル時間とクロスフェード時間が設定できます。ランダム再生も可能です。  
     **Auto Scene Playback**: Sequentially plays back scenes registered in slots 1 through 5 (excluding "Empty"). You can set the interval and crossfade duration for transitions. Random playback is also available.
 -   **ストロボ機能**: 低音の入力に反応して画面全体を発光させる機能です。感度と明るさを設定できます。  
@@ -90,8 +92,8 @@ The following 9 scenes are currently implemented.
   **Overview**: Multiple concentric circles, inspired by stereo speakers, each rotating independently.
 - **低域 (Bass)**: 円の線の太さが脈動するように変化する。  
   **Bass**: The thickness of the circles' lines pulsates.
-- **中域 (Mid)**: 各円の回転速度や回転方向が変化する。  
-  **Mid**: The rotation speed and direction of each circle change.
+- **中域 (Mid)**: 円の線の明るさが変化する。  
+  **Mid**: Affects the brightness of the circles' lines.
 - **高域 (Treble)**: 円周上にノイズやギザギザした乱れを加える。  
   **Treble**: Adds noise and jagged distortions to the circumference of the circles.
 

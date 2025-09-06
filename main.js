@@ -174,6 +174,31 @@ const init = () => {
   startText.addEventListener('click', startAudio);
   startText.addEventListener('touchend', startAudio);
 
+  const fileLoader = document.createElement('input');
+  fileLoader.type = 'file';
+  fileLoader.id = 'setting-file-loader';
+  fileLoader.accept = '.json';
+  fileLoader.style.display = 'none';
+  fileLoader.addEventListener('change', (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const settings = JSON.parse(e.target.result);
+        applySettings(settings);
+      } catch (error) {
+        console.error("Failed to parse settings file:", error);
+        alert("Error: Could not load settings file. It may be corrupted.");
+      }
+    };
+    reader.readAsText(file);
+    
+    event.target.value = '';
+  });
+  document.body.appendChild(fileLoader);
+
   startAnimationLoop();
 };
 
@@ -186,6 +211,8 @@ const setupWorker = () => {
     };
     worker.postMessage({ type: 'update-fps', payload: { fps: params.system.backgroundFps } });
 };
+
+let slotParams = {};
 
 const setupUI = () => {
   pane = new Pane();
@@ -222,7 +249,6 @@ const setupUI = () => {
   
   const sceneFolder = pane.addFolder({ title: 'Scene Slots' });
   const sceneOptions = Object.keys(sceneManager.availableScenes).map(name => ({ text: name, value: name }));
-  const slotParams = {};
 
   for (let i = 0; i < 5; i++) {
     const sceneInstance = sceneManager.activeSlots[i];
@@ -260,6 +286,12 @@ const setupUI = () => {
       worker.postMessage({ type: 'update-fps', payload: { fps: ev.value } });
   });
   systemFolder.addButton({ title: 'Toggle Fullscreen' }).on('click', toggleFullscreen);
+
+  const settingsFolder = pane.addFolder({ title: 'Settings' });
+  settingsFolder.addButton({ title: 'Save Settings' }).on('click', saveSettings);
+  settingsFolder.addButton({ title: 'Load Settings' }).on('click', () => {
+    document.getElementById('setting-file-loader').click();
+  });
 };
 
 const setupPostprocessing = () => {
@@ -493,6 +525,79 @@ const onTouchEnd = (event) => {
 const toggleFullscreen = () => {
   if (!document.fullscreenElement) document.documentElement.requestFullscreen();
   else if (document.exitFullscreen) document.exitFullscreen();
+};
+
+const saveSettings = () => {
+  const settings = {
+    params: params,
+    slots: sceneManager.activeSlots.map(scene => {
+      if (!scene) return 'Empty';
+      return Object.keys(sceneManager.availableScenes).find(key => sceneManager.availableScenes[key] === scene.constructor);
+    }),
+    currentSlotIndex: sceneManager.currentSlotIndex
+  };
+
+  const jsonString = JSON.stringify(settings, null, 2);
+  const blob = new Blob([jsonString], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'void_settings.json';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+};
+
+const applySettings = (settings) => {
+  console.log("Applying settings...");
+  stopAnimationLoop();
+
+  Object.assign(params.audio, settings.params.audio);
+  Object.assign(params.visual, settings.params.visual);
+  Object.assign(params.strobe, settings.params.strobe);
+  Object.assign(params.transition, settings.params.transition);
+  Object.assign(params.system, settings.params.system);
+
+  sceneManager.activeSlots.forEach(scene => {
+    if (scene && scene.dispose) {
+      scene.dispose();
+    }
+  });
+
+  const newSlots = settings.slots.map(sceneName => {
+    const SceneClass = sceneManager.availableScenes[sceneName];
+    return SceneClass ? new SceneClass(scene, params, camera) : null;
+  });
+  sceneManager.activeSlots = newSlots;
+
+  for (let i = 0; i < 5; i++) {
+    const sceneName = settings.slots[i] || 'Empty';
+    slotParams[`Slot ${i + 1}`] = sceneName;
+  }
+  
+  const newIndex = settings.currentSlotIndex || 0;
+  sceneManager.setCurrentSlot(newIndex);
+  
+  sceneManager.activeSlots.forEach((scene, index) => {
+    if (scene) {
+      if (index === newIndex) {
+        scene.show();
+      } else {
+        scene.hide();
+      }
+    }
+  });
+
+  renderer.setClearColor(new THREE.Color(params.visual.backgroundColor), params.visual.backgroundColor === 'transparent' ? 0 : 1);
+  sceneManager.updateForegroundColor(new THREE.Color(params.visual.foregroundColor));
+  worker.postMessage({ type: 'update-fps', payload: { fps: params.system.backgroundFps } });
+
+  pane.refresh();
+
+  console.log("Settings applied. Resuming animation.");
+  startAnimationLoop();
 };
 
 init();
