@@ -85,8 +85,8 @@ The following 9 scenes are currently implemented.
 - **高域 (Treble)**: ワイヤーフレームに歪みやグリッチ（ねじれ）を加える。  
   **Treble**: Adds distortion and glitches (twists) to the wireframe.
 
-### Rotating Rings
-- **概要**: ステレオスピーカーをイメージした、複数の同心円がそれぞれ回転する。  
+### Rough Speakers
+- **概要**: ステレオスピーカーをイメージした複数の同心円がそれぞれ振動する。  
   **Overview**: Multiple concentric circles, inspired by stereo speakers, each rotating independently.
 - **低域 (Bass)**: 円の線の太さが脈動するように変化する。  
   **Bass**: The thickness of the circles' lines pulsates.

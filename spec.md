@@ -99,6 +99,7 @@
   - 現在再生中のスロットとシーン名を表示。
 - **シーン改修**
   - Tri TileとSolar Systemを新規追加。
+  - Rotating Ringsのシーン名をRough Speakersへ変更。
   - CurveRacerを一覧から削除。
 
 ### v1.3.0 (2025-09-05)
