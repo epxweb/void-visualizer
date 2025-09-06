@@ -7,7 +7,7 @@ import { map } from '../core/utils.js';
  * RoughSpeakersSceneクラス
  * ステレオスピーカーをイメージした、複数の同心円がそれぞれ振動するビジュアルシーン。
  */
-export class RotatingRingsScene {
+export class RoughSpeakersScene {
   /**
    * @param {THREE.Scene} scene - レンダリング対象のメインシーン。
    * @param {object} params - Tweakpaneで操作するパラメータオブジェクト。
