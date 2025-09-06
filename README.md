@@ -29,8 +29,6 @@ Due to the nature of audio input, a loopback function on your audio interface ma
     **Strobe Effect**: A function that flashes the entire screen in response to low-frequency input. Sensitivity and brightness can be adjusted.
 -   **バックグラウンド再生**: 非アクティブウィンドウの状態でも映像を再生可能なため、OBSの映像ソースとして活用できます。また、映像配信設定・CPU負荷を考慮して、バックグラウンド再生時のフレームレートを60/30/15fpsから設定可能です。  
     **Background Playback**: Continues to render visuals even when the window is inactive, making it ideal for use as a source in OBS. You can also set the background frame rate to 60, 30, or 15 fps to manage CPU load and streaming settings.
--   スマートフォン未対応です。  
-    Not compatible with smartphones.
 -   **順次実装予定**: 追加ビジュアルシーン。  
     **Coming Soon**: Additional visual scenes.
 
@@ -51,6 +49,13 @@ Due to the nature of audio input, a loopback function on your audio interface ma
     Toggle full screen mode.
 -   **`h`**: UI非表示のON/OFF(hidden)。  
     Toggle UI visibility (hide/show).
+
+### Smartphone Controls
+
+-   ダブルタップでUI非表示のON/OFF。  
+    Double Tap to hide UI.
+-   左右スワイプで再生スロットの切り替え。  
+    Horizontal swipe to change between slots.
 
 ## 🎭 Default Scenes (v1.4.0)
 
@@ -150,8 +155,6 @@ The following 9 scenes are currently implemented.
 ## 📏 Scene Development Guide
 
 新規にビジュアルシーンを開発する場合は、下記のシーン開発ガイドを参照してください。  
-[./scene_development_guide.md](./scene_development_guide.md)
-
 When developing new visual scenes, please refer to the scene development guide below.  
 [./scene_development_guide.md](./scene_development_guide.md)
 
