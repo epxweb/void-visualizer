@@ -18,7 +18,7 @@ import { FadeShader } from './shaders/FadeShader.js';
 import { StrobeShader } from './shaders/StrobeShader.js';
 
 let scene, camera, renderer, composer, pane;
-let analyser, dataArray;
+let audioContext, analyser, dataArray;
 let bass = 0, mid = 0, treble = 0;
 let time = 0;
 let clock = new THREE.Clock();
@@ -37,7 +37,6 @@ let touchStartX = 0;
 let lastTap = 0;
 const DOUBLE_TAP_DELAY = 300; // ダブルタップと判定する時間 (ms)
 const SWIPE_THRESHOLD = 50;   // スワイプと判定する距離 (px)
-
 
 const params = {
   audio: { bassSensitivity: 1.0, midSensitivity: 1.0, trebleSensitivity: 1.0 },
@@ -65,15 +64,14 @@ const sceneManager = {
     this.availableScenes['Empty'] = null; // Emptyスロット用の定義
 
     const sceneKeys = Object.keys(this.availableScenes).filter(k => k !== 'Empty');
-    // 各スロットに独立したインスタンスを生成
     for (let i = 0; i < 5; i++) {
       const SceneClass = this.availableScenes[sceneKeys[i % sceneKeys.length]];
       this.activeSlots[i] = new SceneClass(threeScene, params, camera);
-      this.activeSlots[i].hide(); // まずはすべて非表示
+      this.activeSlots[i].hide();
     }
     
     this.setCurrentSlot(0);
-    this.activeSlots[0].show(); // 最初のスロットだけ表示
+    this.activeSlots[0].show();
   },
 
   update(audioData, time) {
@@ -95,41 +93,22 @@ const sceneManager = {
   },
   
   switchToNext() {
-    const availableSlots = [];
-    for (let i = 0; i < this.activeSlots.length; i++) {
-      if (this.activeSlots[i] !== null) {
-        availableSlots.push(i);
-      }
-    }
-
-    if (availableSlots.length < 2) {
-      return;
-    }
+    const availableSlots = this.activeSlots.map((s, i) => s ? i : -1).filter(i => i !== -1);
+    if (availableSlots.length < 2) return;
 
     let nextSlotIndex;
+    const currentIndexInAvailable = availableSlots.indexOf(this.currentSlotIndex);
 
     if (params.transition.random) {
       const candidates = availableSlots.filter(index => index !== this.currentSlotIndex);
-      
-      if (candidates.length === 0) {
-        const currentIndexInAvailable = availableSlots.indexOf(this.currentSlotIndex);
-        const nextIndexInAvailable = (currentIndexInAvailable + 1) % availableSlots.length;
-        nextSlotIndex = availableSlots[nextIndexInAvailable];
-      } else {
-        const randomIndex = Math.floor(Math.random() * candidates.length);
-        nextSlotIndex = candidates[randomIndex];
-      }
-
+      nextSlotIndex = candidates.length > 0 ? candidates[Math.floor(Math.random() * candidates.length)] : this.currentSlotIndex;
     } else {
-      const currentIndexInAvailable = availableSlots.indexOf(this.currentSlotIndex);
       const nextIndexInAvailable = (currentIndexInAvailable + 1) % availableSlots.length;
       nextSlotIndex = availableSlots[nextIndexInAvailable];
     }
-
     this.switchTo(nextSlotIndex);
   },
 
-  // --- スマートフォン対応: シーケンシャルなシーン切り替え ---
   switchToNextSequential() {
     const nextSlotIndex = (this.currentSlotIndex + 1) % this.activeSlots.length;
     this.switchTo(nextSlotIndex);
@@ -168,22 +147,20 @@ const init = () => {
   setupPostprocessing();
   setupUI();
 
-  // --- イベントリスナー ---
   window.addEventListener('resize', onWindowResize, false);
   document.addEventListener('keydown', onKeyDown, false);
-  document.body.addEventListener('click', startAudio, { once: true });
   document.addEventListener('visibilitychange', handleVisibilityChange, false);
-  
-  // --- スマートフォン対応: タッチイベントリスナー ---
   document.body.addEventListener('touchstart', onTouchStart, { passive: false });
   document.body.addEventListener('touchend', onTouchEnd, false);
-
 
   const startText = document.createElement('div');
   startText.id = 'start-text';
   startText.innerHTML = 'Click to start audio';
-  Object.assign(startText.style, { position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', color: 'white', fontSize: '24px', fontFamily: 'sans-serif' });
+  Object.assign(startText.style, { position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', color: 'white', fontSize: '24px', fontFamily: 'sans-serif', cursor: 'pointer' });
   document.body.appendChild(startText);
+
+  startText.addEventListener('click', startAudio);
+  startText.addEventListener('touchend', startAudio);
 
   startAnimationLoop();
 };
@@ -224,36 +201,22 @@ const setupUI = () => {
 
   for (let i = 0; i < 5; i++) {
     const sceneInstance = sceneManager.activeSlots[i];
-    if (sceneInstance) {
-        const sceneName = Object.keys(sceneManager.availableScenes).find(key => sceneManager.availableScenes[key] === sceneInstance.constructor);
-        slotParams[`Slot ${i + 1}`] = sceneName;
-    } else {
-        slotParams[`Slot ${i + 1}`] = 'Empty';
-    }
+    slotParams[`Slot ${i + 1}`] = sceneInstance ? Object.keys(sceneManager.availableScenes).find(key => sceneManager.availableScenes[key] === sceneInstance.constructor) : 'Empty';
   }
 
   for (let i = 1; i <= 5; i++) {
     sceneFolder.addBinding(slotParams, `Slot ${i}`, { options: sceneOptions }).on('change', (ev) => {
       const slotIndex = i - 1;
       const oldScene = sceneManager.activeSlots[slotIndex];
-
-      if (oldScene && oldScene.dispose) {
-        oldScene.dispose();
-      }
+      if (oldScene && oldScene.dispose) oldScene.dispose();
 
       const NewSceneClass = sceneManager.availableScenes[ev.value];
       const newScene = NewSceneClass ? new NewSceneClass(scene, params, camera) : null;
       sceneManager.activeSlots[slotIndex] = newScene;
 
       if (slotIndex === sceneManager.currentSlotIndex) {
-        const fromScene = oldScene;
-        const toScene = newScene;
-        
-        if(fromScene) fromScene.hide();
-        if(toScene) toScene.show();
-
-        sceneManager.setCurrentSlot(slotIndex);
-
+        if(oldScene) oldScene.hide();
+        if(newScene) newScene.show();
       } else {
         if(newScene) newScene.hide();
       }
@@ -267,14 +230,7 @@ const setupUI = () => {
   transitionFolder.addBinding(params.transition, 'duration', { label: 'Duration (sec)', min: 0.1, max: 5, step: 0.1 });
 
   const systemFolder = pane.addFolder({ title: 'System' });
-  systemFolder.addBinding(params.system, 'backgroundFps', {
-      label: 'Background FPS',
-      options: [
-          { text: '15', value: 15 },
-          { text: '30', value: 30 },
-          { text: '60', value: 60 },
-      ]
-  }).on('change', (ev) => {
+  systemFolder.addBinding(params.system, 'backgroundFps', { label: 'Background FPS', options: [{ text: '15', value: 15 }, { text: '30', value: 30 }, { text: '60', value: 60 }] }).on('change', (ev) => {
       worker.postMessage({ type: 'update-fps', payload: { fps: ev.value } });
   });
   systemFolder.addButton({ title: 'Toggle Fullscreen' }).on('click', toggleFullscreen);
@@ -305,19 +261,33 @@ const setupPostprocessing = () => {
   composer.addPass(grainPass);
 };
 
-const startAudio = async () => {
+const startAudio = async (event) => {
+  event.preventDefault();
+  event.stopPropagation();
+  if (analyser) return;
+
   const startText = document.getElementById('start-text');
-  if (startText) startText.remove();
+  if (startText) {
+    startText.removeEventListener('click', startAudio);
+    startText.removeEventListener('touchend', startAudio);
+    startText.innerHTML = 'Starting...';
+  }
+
   try {
-    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioContext.state === 'suspended') {
+      await audioContext.resume();
+    }
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
     const source = audioContext.createMediaStreamSource(stream);
     analyser = audioContext.createAnalyser();
     analyser.fftSize = 256;
     source.connect(analyser);
     dataArray = new Uint8Array(analyser.frequencyBinCount);
-  } catch (err) { 
+    if (startText) startText.remove();
+  } catch (err) {
     console.log("Audio setup failed. This can happen if you don't grant microphone permissions.");
+    if (startText) startText.innerHTML = 'Audio permission denied. Please refresh and try again.';
   }
 };
 
@@ -333,12 +303,9 @@ const updateAudio = () => {
     else if (i <= midEndIndex) midSum += dataArray[i];
     else trebleSum += dataArray[i];
   }
-  const bassDivisor = bassEndIndex + 1;
-  const midDivisor = midEndIndex - bassEndIndex;
-  const trebleDivisor = freqBinCount - midEndIndex - 1;
-  bass = ((bassSum / bassDivisor) / 255) * params.audio.bassSensitivity;
-  mid = ((midSum / midDivisor) / 255) * params.audio.midSensitivity;
-  treble = ((trebleSum / (trebleDivisor > 0 ? trebleDivisor : 1)) / 255) * params.audio.trebleSensitivity;
+  bass = ((bassSum / (bassEndIndex + 1)) / 255) * params.audio.bassSensitivity;
+  mid = ((midSum / (midEndIndex - bassEndIndex)) / 255) * params.audio.midSensitivity;
+  treble = ((trebleSum / (freqBinCount - midEndIndex)) / 255) * params.audio.trebleSensitivity;
   bass = Math.min(bass, 1.0); mid = Math.min(mid, 1.0); treble = Math.min(treble, 1.0);
 };
 
@@ -352,10 +319,8 @@ const startAnimationLoop = () => {
 };
 
 const stopAnimationLoop = () => {
-    if (animationFrameId) {
-        cancelAnimationFrame(animationFrameId);
-        animationFrameId = null;
-    }
+    if (animationFrameId) cancelAnimationFrame(animationFrameId);
+    animationFrameId = null;
     worker.postMessage({ type: 'stop' });
 };
 
@@ -467,45 +432,37 @@ const onKeyDown = (event) => {
   }
 };
 
-// --- スマートフォン対応: タッチイベントハンドラ ---
 const onTouchStart = (event) => {
-    // Tweakpane上の操作は無視
-    if (event.target.closest('.tp-dfwv')) return;
-
-    event.preventDefault(); // 画面のスクロールを防止
+    if (document.getElementById('start-text') || event.target.closest('.tp-dfwv')) return;
+    event.preventDefault();
     
     const currentTime = new Date().getTime();
     const timeSinceLastTap = currentTime - lastTap;
 
     if (timeSinceLastTap < DOUBLE_TAP_DELAY && timeSinceLastTap > 0) {
-        // ダブルタップ: UIの表示/非表示を切り替え
         if (pane) pane.hidden = !pane.hidden;
-        lastTap = 0; // 3回目のタップで再度反応しないようにリセット
+        lastTap = 0;
     } else {
-        // シングルタップ: スワイプ開始点を記録
         touchStartX = event.touches[0].clientX;
     }
     lastTap = currentTime;
 };
 
 const onTouchEnd = (event) => {
-    if (touchStartX === 0) return;
+    if (document.getElementById('start-text') || touchStartX === 0) return;
 
     const touchEndX = event.changedTouches[0].clientX;
     const swipeDistance = touchEndX - touchStartX;
 
     if (Math.abs(swipeDistance) > SWIPE_THRESHOLD) {
         if (swipeDistance < 0) {
-            // 左スワイプ: 次のシーンへ
             sceneManager.switchToNextSequential();
         } else {
-            // 右スワイプ: 前のシーンへ
             sceneManager.switchToPreviousSequential();
         }
     }
-    touchStartX = 0; // 開始点をリセット
+    touchStartX = 0;
 };
-
 
 const toggleFullscreen = () => {
   if (!document.fullscreenElement) document.documentElement.requestFullscreen();
