@@ -32,6 +32,13 @@ let transitioner = new Transitioner();
 let transitionPass, strobePass, grainPass;
 let renderTargetA, renderTargetB;
 
+// --- タッチ操作用の変数 ---
+let touchStartX = 0;
+let lastTap = 0;
+const DOUBLE_TAP_DELAY = 300; // ダブルタップと判定する時間 (ms)
+const SWIPE_THRESHOLD = 50;   // スワイプと判定する距離 (px)
+
+
 const params = {
   audio: { bassSensitivity: 1.0, midSensitivity: 1.0, trebleSensitivity: 1.0 },
   visual: { grain: 0.1, backgroundColor: '#000000', foregroundColor: '#ffffff' },
@@ -121,6 +128,17 @@ const sceneManager = {
 
     this.switchTo(nextSlotIndex);
   },
+
+  // --- スマートフォン対応: シーケンシャルなシーン切り替え ---
+  switchToNextSequential() {
+    const nextSlotIndex = (this.currentSlotIndex + 1) % this.activeSlots.length;
+    this.switchTo(nextSlotIndex);
+  },
+
+  switchToPreviousSequential() {
+    const prevSlotIndex = (this.currentSlotIndex - 1 + this.activeSlots.length) % this.activeSlots.length;
+    this.switchTo(prevSlotIndex);
+  },
   
   setCurrentSlot(slotIndex) {
       this.currentSlotIndex = slotIndex;
@@ -150,10 +168,16 @@ const init = () => {
   setupPostprocessing();
   setupUI();
 
+  // --- イベントリスナー ---
   window.addEventListener('resize', onWindowResize, false);
   document.addEventListener('keydown', onKeyDown, false);
   document.body.addEventListener('click', startAudio, { once: true });
   document.addEventListener('visibilitychange', handleVisibilityChange, false);
+  
+  // --- スマートフォン対応: タッチイベントリスナー ---
+  document.body.addEventListener('touchstart', onTouchStart, { passive: false });
+  document.body.addEventListener('touchend', onTouchEnd, false);
+
 
   const startText = document.createElement('div');
   startText.id = 'start-text';
@@ -352,7 +376,6 @@ const renderFrame = () => {
     const audioData = { bass, mid, treble };
     sceneManager.update(audioData, time);
 
-    // --- Strobe Logic ---
     if (params.strobe.enable) {
         strobePass.enabled = true;
         const threshold = 1.0 - params.strobe.sensitivity;
@@ -443,6 +466,46 @@ const onKeyDown = (event) => {
     sceneManager.switchTo(parseInt(event.key) - 1);
   }
 };
+
+// --- スマートフォン対応: タッチイベントハンドラ ---
+const onTouchStart = (event) => {
+    // Tweakpane上の操作は無視
+    if (event.target.closest('.tp-dfwv')) return;
+
+    event.preventDefault(); // 画面のスクロールを防止
+    
+    const currentTime = new Date().getTime();
+    const timeSinceLastTap = currentTime - lastTap;
+
+    if (timeSinceLastTap < DOUBLE_TAP_DELAY && timeSinceLastTap > 0) {
+        // ダブルタップ: UIの表示/非表示を切り替え
+        if (pane) pane.hidden = !pane.hidden;
+        lastTap = 0; // 3回目のタップで再度反応しないようにリセット
+    } else {
+        // シングルタップ: スワイプ開始点を記録
+        touchStartX = event.touches[0].clientX;
+    }
+    lastTap = currentTime;
+};
+
+const onTouchEnd = (event) => {
+    if (touchStartX === 0) return;
+
+    const touchEndX = event.changedTouches[0].clientX;
+    const swipeDistance = touchEndX - touchStartX;
+
+    if (Math.abs(swipeDistance) > SWIPE_THRESHOLD) {
+        if (swipeDistance < 0) {
+            // 左スワイプ: 次のシーンへ
+            sceneManager.switchToNextSequential();
+        } else {
+            // 右スワイプ: 前のシーンへ
+            sceneManager.switchToPreviousSequential();
+        }
+    }
+    touchStartX = 0; // 開始点をリセット
+};
+
 
 const toggleFullscreen = () => {
   if (!document.fullscreenElement) document.documentElement.requestFullscreen();
