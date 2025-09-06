@@ -124,6 +124,7 @@ const sceneManager = {
   setCurrentSlot(slotIndex) {
       this.currentSlotIndex = slotIndex;
       this.lastSwitchTime = clock.getElapsedTime();
+      updateCurrentSceneDisplay();
   },
 
   updateForegroundColor(color) {
@@ -133,6 +134,15 @@ const sceneManager = {
         }
     });
   }
+};
+
+let currentSceneDisplay;
+
+const updateCurrentSceneDisplay = () => {
+    if (!currentSceneDisplay) return;
+    const currentScene = sceneManager.activeSlots[sceneManager.currentSlotIndex];
+    const sceneName = currentScene ? Object.keys(sceneManager.availableScenes).find(key => sceneManager.availableScenes[key] === currentScene.constructor) : 'Empty';
+    currentSceneDisplay.textContent = `Now Playing: [${sceneManager.currentSlotIndex + 1}] ${sceneName}`;
 };
 
 const init = () => {
@@ -179,6 +189,19 @@ const setupWorker = () => {
 
 const setupUI = () => {
   pane = new Pane();
+
+  currentSceneDisplay = document.createElement('div');
+  Object.assign(currentSceneDisplay.style, {
+      backgroundColor: 'rgba(0, 0, 0, 0.2)',
+      padding: '8px 12px',
+      fontSize: '12px',
+      color: '#ffffff',
+      fontFamily: 'monospace',
+      borderBottom: '1px solid #444'
+  });
+  pane.element.insertBefore(currentSceneDisplay, pane.element.firstChild);
+  updateCurrentSceneDisplay();
+
   const audioFolder = pane.addFolder({ title: 'Audio Sensitivity' });
   audioFolder.addBinding(params.audio, 'bassSensitivity', { min: 0, max: 5, step: 0.1, label: 'Bass' });
   audioFolder.addBinding(params.audio, 'midSensitivity', { min: 0, max: 5, step: 0.1, label: 'Mid' });
@@ -222,6 +245,7 @@ const setupUI = () => {
       } else {
         if(newScene) newScene.hide();
       }
+      updateCurrentSceneDisplay();
     });
   }
 

@@ -18,15 +18,16 @@ export class RoughSpeakersScene {
     this.params = params;
     this.camera = camera;
 
-    // このシーン固有の定数
     this.NUM_RINGS = 10;
-    this.RING_RESOLUTION = 64; // 円の滑らかさ
+    this.RING_RESOLUTION = 64;
 
-    // ★ここから修正点★
-    this.mainGroup = new THREE.Group(); // 全体をまとめる親グループ
+    this.mainGroup = new THREE.Group();
     this.leftRingsGroup = new THREE.Group();
     this.rightRingsGroup = new THREE.Group();
-    // ★ここまで修正点★
+    
+    this.baseColor = new THREE.Color(this.params.visual.foregroundColor);
+    this.material = new THREE.LineBasicMaterial({ color: this.baseColor });
+
     this.init();
   }
 
@@ -34,14 +35,10 @@ export class RoughSpeakersScene {
    * シーンの初期化処理。
    */
   init() {
-    // ★ここから修正点★
-    this.leftRingsGroup.position.x = -4; // 左側に配置
-    this.rightRingsGroup.position.x = 4;  // 右側に配置
+    this.leftRingsGroup.position.x = -4;
+    this.rightRingsGroup.position.x = 4;
     this.mainGroup.add(this.leftRingsGroup);
     this.mainGroup.add(this.rightRingsGroup);
-    // ★ここまで修正点★
-
-    const material = new THREE.LineBasicMaterial({ color: new THREE.Color(this.params.visual.foregroundColor) });
 
     for (let i = 0; i < this.NUM_RINGS; i++) {
       const radius = 1 + i * 0.5;
@@ -61,20 +58,15 @@ export class RoughSpeakersScene {
       geometry.attributes.position.needsUpdate = true;
       geometry.setDrawRange(0, this.RING_RESOLUTION + 1);
 
-      // ★ここから修正点★
-      // 左側のリングを作成
-      const leftRing = new THREE.Line(geometry, material);
+      const leftRing = new THREE.Line(geometry, this.material);
       leftRing.userData = {
-        baseRotation: (Math.random() - 0.5) * 0.01,
         basePositions: basePositions
       };
       this.leftRingsGroup.add(leftRing);
 
-      // 右側のリングを作成（ジオメトリとマテリアルは共有）
-      const rightRing = new THREE.Line(geometry, material);
-      rightRing.userData = leftRing.userData; // 動きを同じにするためにuserDataを共有
+      const rightRing = new THREE.Line(geometry, this.material);
+      rightRing.userData = leftRing.userData;
       this.rightRingsGroup.add(rightRing);
-      // ★ここまで修正点★
     }
     this.threeScene.add(this.mainGroup);
   }
@@ -86,24 +78,23 @@ export class RoughSpeakersScene {
   update(audioData) {
     const { bass, mid, treble } = audioData;
 
-    // 低域: 円の線の太さが脈動するように変化 -> 全体のスケールで表現
+    // 低域: 全体のスケールで表現
     const scale = 1 + map(bass, 0, 1, -0.5, 0.5);
-    // ★ここから修正点★
     this.leftRingsGroup.scale.set(scale, scale, scale);
     this.rightRingsGroup.scale.set(scale, scale, scale);
-    // ★ここまで修正点★
 
-    const midSpeedFactor = map(mid, 0, 1, -2, 2);
+    // 中域: 円の明るさを変更
+    const hsl = {};
+    this.baseColor.getHSL(hsl);
+    // midの値を輝度の範囲(20%〜100%)に直接マッピングすることで、元の色の輝度に依存せず、常に期待通りの明るさの変化を得る
+    const lightness = map(mid, 0, 1, 0.2, 1.0);
+    this.material.color.setHSL(hsl.h, hsl.s, lightness);
+
+    // 高域: 円周上にノイズを加える
     const trebleNoiseAmount = map(treble, 0, 1, 0, 0.3);
 
-    // ★ここから修正点★
-    // 両方のグループのリングを更新
     [this.leftRingsGroup, this.rightRingsGroup].forEach(group => {
         group.children.forEach(ring => {
-            // 中域: 各円の回転速度や回転方向が変化
-            ring.rotation.z += ring.userData.baseRotation * midSpeedFactor;
-            
-            // 高域: 円周上にノイズやギザギザした乱れを加える
             const positions = ring.geometry.attributes.position.array;
             const basePositions = ring.userData.basePositions;
 
@@ -115,7 +106,6 @@ export class RoughSpeakersScene {
             ring.geometry.attributes.position.needsUpdate = true;
         });
     });
-    // ★ここまで修正点★
   }
 
   /**
@@ -123,10 +113,7 @@ export class RoughSpeakersScene {
    * @param {THREE.Color} color - 新しい前景色。
    */
   updateForegroundColor(color) {
-    // 全てのリングのマテリアルは共通なので、一つだけ変更すればOK
-    if (this.leftRingsGroup.children.length > 0) {
-      this.leftRingsGroup.children[0].material.color.set(color);
-    }
+    this.baseColor.set(color);
   }
 
   show() {
@@ -141,17 +128,23 @@ export class RoughSpeakersScene {
    * このシーンに関連するすべてのThree.jsオブジェクトを解放する。
    */
   dispose() {
-    const firstRingMaterial = this.leftRingsGroup.children.length > 0 ? this.leftRingsGroup.children[0].material : null;
-    
-    // ジオメトリは共有されているので、片方のグループのリングだけ解放すればOK
-    this.leftRingsGroup.children.forEach(ring => {
-      ring.geometry.dispose();
-    });
-
-    // マテリアルは全リングで共有しているので、一度だけ解放する
-    if(firstRingMaterial) {
-      firstRingMaterial.dispose();
+    // ジオメトリは左右で共有されているので、片方のグループからのみ解放する
+    if (this.leftRingsGroup) {
+        this.leftRingsGroup.children.forEach(ring => {
+            if (ring.geometry) {
+                ring.geometry.dispose();
+            }
+        });
     }
-    this.threeScene.remove(this.mainGroup);
+
+    // マテリアルは全リングで共有
+    if (this.material) {
+        this.material.dispose();
+    }
+    
+    // シーンからグループを削除
+    if (this.threeScene && this.mainGroup) {
+        this.threeScene.remove(this.mainGroup);
+    }
   }
 }
