@@ -50,10 +50,10 @@ Due to the nature of audio input, a loopback function on your audio interface ma
 -   **`h`**: UI非表示のON/OFF(hidden)。  
     Toggle UI visibility (hide/show).
 
-## 🎭 Default Scenes (v1.3.0)
+## 🎭 Default Scenes (v1.4.0)
 
-現在、以下の8つのシーンが実装されています。  
-The following 8 scenes are currently implemented.
+現在、以下の9つのシーンが実装されています。  
+The following 9 scenes are currently implemented.
 
 ### Wavy Lines
 -   **概要**: 画面を横切る複数の波打つ線で構成されます。  
@@ -125,15 +125,25 @@ The following 8 scenes are currently implemented.
 - **高域 (Treble)**: 各点の色や不透明度がランダムに明滅し、きらびやかな印象を与える。  
   **Treble**: The color and opacity of each point randomly blink, creating a sparkling impression.
 
-### Curve Racer
-- **概要**: 画面内に描かれた閉じた8の字コースの線上を、光る円が滑らかに滑走する。音楽のテンポと円の速度がシンクロすることで、高い没入感を生み出す。  
-  **Overview**: A glowing circle glides smoothly along a closed figure-eight course drawn on the screen. The synchronization of the music's tempo and the circle's speed creates a highly immersive experience.
-- **低域 (Bass)**: 滑走する円のサイズや輝度が変化する。  
-  **Bass**: The size and brightness of the gliding circle change.
-- **中域 (Mid)**: 円がコースを滑走する速度が変化する。  
-  **Mid**: The speed at which the circle glides along the course changes.
-- **高域 (Treble)**: コース自体の形状が、ノイズによって細かく歪む。  
-  **Treble**: The shape of the course itself is finely distorted by noise.
+### Tri Tile
+- **概要**: 無数に敷き詰められた正三角形のタイル上を浮遊するようにカメラが移動し、音に反応してタイルがリズミカルに明滅する。  
+  **Overview**: The camera glides over a field of countless equilateral triangles, which rhythmically flash in response to the audio.
+- **低域 (Bass)**: すべてのタイルが一斉に、そして瞬間的に発光するパルスエフェクトを発生させる。  
+  **Bass**: Triggers a pulse effect, causing all tiles to flash in unison momentarily.
+- **中域 (Mid)**: タイルの上をカメラが移動する速度が変化する。  
+  **Mid**: Changes the speed of the camera's movement across the tiles.
+- **高域 (Treble)**: ランダムに選択されたタイルが、前景（白）色で強く点灯する。  
+  **Treble**: Causes randomly selected tiles to light up brightly in the foreground color.
+
+### Solar System
+- **概要**: 3D空間に浮かぶミニマルな太陽系。中央の恒星の周りを惑星が公転し、カメラもその周りを滑らかに旋回する。  
+  **Overview**: A minimal solar system floating in 3D space. Planets orbit a central star, and the camera smoothly revolves around the scene.
+- **低域 (Bass)**: 中央の恒星が、ビートに合わせて力強く脈動（拡大・縮小）する。  
+  **Bass**: The central star pulsates powerfully in size with the beat.
+- **中域 (Mid)**: 惑星たちが恒星の周りを公転する速度が変化する。  
+  **Mid**: Changes the speed at which the planets orbit the star.
+- **高域 (Treble)**: 背景の星々が、きらめくように明るさを変化させる。  
+  **Treble**: The background stars twinkle, changing their brightness.
 
 ## 📏 Scene Development Guide
 

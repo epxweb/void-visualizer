@@ -1,11 +1,11 @@
-// scenes/RotatingRings.js
+// scenes/RoughSpeakers.js
 
 import * as THREE from 'https://cdn.skypack.dev/three@0.128.0/build/three.module.js';
 import { map } from '../core/utils.js';
 
 /**
- * RotatingRingsSceneクラス
- * レコード盤をイメージした、複数の同心円がそれぞれ回転するビジュアルシーン。
+ * RoughSpeakersSceneクラス
+ * ステレオスピーカーをイメージした、複数の同心円がそれぞれ振動するビジュアルシーン。
  */
 export class RotatingRingsScene {
   /**
