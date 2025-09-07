@@ -43,7 +43,6 @@ export class LunarPhasesScene {
             u_color: { value: new THREE.Color(this.params.visual.foregroundColor) },
             u_phase: { value: 0.0 }, // 0.0 (新月) to 1.0 (満月)
             u_flash: { value: 0.0 }, // 0.0 to 1.0
-            u_noise: { value: 0.0 }, // 0.0 to 1.0
           },
           vertexShader: `
             varying vec2 vUv;
@@ -56,7 +55,6 @@ export class LunarPhasesScene {
             uniform vec3 u_color;
             uniform float u_phase;
             uniform float u_flash;
-            uniform float u_noise;
             varying vec2 vUv;
 
             // Simple noise function
@@ -122,7 +120,6 @@ export class LunarPhasesScene {
       const moonMaterial = this.moons[i].material;
 
       let phase = 0;
-      const noise = 0; // ノイズは無効化
       
       // 列の位置に応じて位相オフセットを設定
       const phaseOffset = (col / 3.0) * Math.PI * 2; // 0%, 33%, 66% のオフセット
@@ -143,7 +140,6 @@ export class LunarPhasesScene {
       }
       
       moonMaterial.uniforms.u_phase.value = phase;
-      moonMaterial.uniforms.u_noise.value = noise;
     }
 
     // アタックエフェクトを減衰させる
