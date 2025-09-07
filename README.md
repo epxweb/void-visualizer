@@ -59,7 +59,7 @@ Due to the nature of audio input, a loopback function on your audio interface ma
 
 ## 🎭 Default Scenes (v1.4.0)
 
-現在、以下の10個のシーンが実装されています。  
+現在、以下の11個のシーンが実装されています。  
 The following 10 scenes are currently implemented.
 
 ### Wavy Lines
@@ -161,6 +161,16 @@ The following 10 scenes are currently implemented.
   **Mid**: The middle row of moons cycles through its phases according to the mid-range energy level. It emits a flash when an attack is detected.
 - **高域 (Treble)**: グリッド上段の月が、高域のエネルギー量に応じて満ち欠けのサイクルを変化させる。アタックを検知すると閃光を放つ。
   **Treble**: The top row of moons cycles through its phases according to the treble energy level. It emits a flash when an attack is detected.
+
+### Elevator Shaft
+- **概要**: 3Dワイヤーフレームの六角柱シャフト内をエレベーターが無限に上昇していく様子を真横から描く。背景に流れるビル群の窓明かりが、都会的でリミナルな高揚感を演出する。
+  **Overview**: Depicts a side-view of an elevator endlessly ascending within a 3D wireframe hexagonal shaft. The scrolling city lights in the background create an urban, liminal, and uplifting atmosphere.
+- **低域 (Bass)**: キックドラムのアタックに合わせ、エレベーターの床面が力強く閃光を放つ。
+  **Bass**: The elevator floor emits a powerful flash in sync with bass attacks.
+- **中域 (Mid)**: エレベーターの上昇速度をコントロールする。
+  **Mid**: Controls the ascent speed of the elevator.
+- **高域 (Treble)**: 背景に広がるビル群の窓が、ハイハットのリズムに合わせてランダムに明滅する。
+  **Treble**: The windows of the background buildings flicker randomly in time with the high-frequency rhythms.
 
 ## 📏 Scene Development Guide
 
