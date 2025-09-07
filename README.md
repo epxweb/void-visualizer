@@ -1,8 +1,137 @@
-# Void Visualizer v.1.4.0
+# Void - Audio Visualizer v.1.4.1
 
 リアルタイム音声入力に反応する、DJのためのミニマルな簡易VJ Webアプリです。  
 ブラウザで開いて、DJ時にOBSのウィンドウキャプチャのソースとして利用することを想定しています。  
 音声入力の仕組み上、オーディオインターフェースにループバックなどの機能が必要なことがあります。
+
+## 🎛️ 公式デモ
+[https://epxweb.github.io/void-visualizer/](https://epxweb.github.io/void-visualizer/)
+
+## ✨ 特徴
+
+-   **リアルタイム音声解析**: マイクやOSのオーディオ入力から音声を取得し、**低域・中音域・高域**の3帯域に分割してビジュアルに反映します。
+-   **多彩なビジュアルシーン**: 音楽の特性に応じて様々な表情を見せる、複数のビジュアルシーンを搭載しています。
+-   **UIコントロールパネル**: 各種パラメータ（感度、エフェクト強度、色など）をリアルタイムに調整可能です。
+-   **シーン管理機能**: 最大5つのシーンをスロットに登録し、手動または自動でスムーズに切り替えることができます。
+-   **設定の保存・読み込み機能**: 各種パラメータやスロットのシーン構成をJSONファイルとしてローカルに保存し、いつでも復元できます。これにより、お気に入りの設定をプリセットとして管理可能です。
+-   **オートシーン再生**: 1から5までのスロットに登録したEmptyを除く各シーンをシーケンシャルに連続再生します。シーン遷移のインターバル時間とクロスフェード時間が設定できます。ランダム再生も可能です。
+-   **ストロボ機能**: 低音の入力に反応して画面全体を発光させる機能です。感度と明るさを設定できます。
+-   **バックグラウンド再生**: 非アクティブウィンドウの状態でも映像を再生可能なため、OBSの映像ソースとして活用できます。また、映像配信設定・CPU負荷を考慮して、バックグラウンド再生時のフレームレートを60/30/15fpsから設定可能です。
+-   **順次実装予定**: 追加ビジュアルシーン。
+
+## 🚀 使いかた
+
+1.  アプリケーションを開くと表示される「Click to start audio」をクリックして、マイクへのアクセスを許可してください。
+2.  画面右上に表示されるコントロールパネルで、各種パラメータを調整します。
+3.  キーボードショートカットで、より直感的な操作が可能です。
+
+### キーボードショートカット
+
+-   **`1` - `5`**: 対応するスロットのシーンに即時切り替え。
+-   **`f`**: フルスクリーン表示のON/OFF(full screen)。
+-   **`h`**: UI非表示のON/OFF(hidden)。
+
+### スマートフォン操作
+
+-   ダブルタップでUI非表示のON/OFF。
+-   左右スワイプで再生スロットの切り替え。
+
+## 🎭 デフォルトシーン (v1.4.1)
+
+現在、以下の11個のシーンが実装されています。
+
+### Wavy Lines
+-   **概要**: 画面を横切る複数の波打つ線で構成されます。
+-   **低域 (Bass)**: 線の数に影響。
+-   **中域 (Mid)**: 線の波の大きさに影響。
+-   **高域 (Treble)**: 線のノイズ感・グリッチ感に影響。
+
+### Pulsing Polygon
+-   **概要**: 画面中央で脈動・回転する多角形で構成されます。
+-   **低域 (Bass)**: 多角形の大きさ（脈動）に影響。
+-   **中域 (Mid)**: 多角形の回転速度に影響。
+-   **高域 (Treble)**: 多角形の頂点の歪み（トゲの鋭さ）に影響。
+
+### Infinite Tunnel
+- **概要**: 画面奥に向かって無限に続くワイヤーフレームのトンネル。音楽の疾走感を表現する。
+- **低域 (Bass)**: ビートに合わせてトンネルの半径が一瞬拡大する。
+- **中域 (Mid)**: トンネルを突き進むスピードが変化する。
+- **高域 (Treble)**: ワイヤーフレームに歪みやグリッチ（ねじれ）を加える。
+
+### Rough Speakers
+- **概要**: ステレオスピーカーをイメージした複数の同心円がそれぞれ振動する。
+- **低域 (Bass)**: 円の線の太さが脈動するように変化する。
+- **中域 (Mid)**: 円の線の明るさが変化する。
+- **高域 (Treble)**: 円周上にノイズやギザギザした乱れを加える。
+
+### Wireframe Mirrorball
+- **概要**: 画面中央に配置されたワイヤーフレームのミラーボールから、放射状に無数の直線が放たれる。クラシックなモチーフをミニマルに再解釈したビジュアル。
+- **低域 (Bass)**: 放射される直線が一斉に長く、そして明るくなる。
+- **中域 (Mid)**: ミラーボール本体の回転速度が変化する。
+- **高域 (Treble)**: 放射される直線の本数や角度がランダムに変化する。
+
+### Warping Grid
+- **概要**: 画面全体に広がるグリッド（格子）が、回転しながら拡大・縮小を繰り返す。
+- **低域 (Bass)**: ビートに合わせてグリッド全体が拡大・縮小する。
+- **中域 (Mid)**: グリッドの回転速度が変化する。
+- **高域 (Treble)**: 格子の交点がランダムに明滅する。
+
+### Pulsing 3D Grid
+- **概要**: 立方体の3Dグリッド上にプロットされた多数の円形の点が、ビートに合わせてリズミカルに脈動する。`WarpingGrid`シーンの3次元的な発展形。
+- **低域 (Bass)**: 全ての点のサイズが一斉に拡大・縮小し、力強い脈動感を表現する。
+- **中域 (Mid)**: グリッド全体がZ軸周りをゆっくりと回転する。
+- **高域 (Treble)**: 各点の色や不透明度がランダムに明滅し、きらびやかな印象を与える。
+
+### Tri Tile
+- **概要**: 無数に敷き詰められた正三角形のタイル上を浮遊するようにカメラが移動し、音に反応してタイルがリズミカルに明滅する。
+- **低域 (Bass)**: すべてのタイルが一斉に、そして瞬間的に発光するパルスエフェクトを発生させる。
+- **中域 (Mid)**: タイルの上をカメラが移動する速度が変化する。
+- **高域 (Treble)**: ランダムに選択されたタイルが、前景（白）色で強く点灯する。
+
+### Solar System
+- **概要**: 3D空間に浮かぶミニマルな太陽系。中央の恒星の周りを惑星が公転し、カメラもその周りを滑らかに旋回する。
+- **低域 (Bass)**: 中央の恒星が、ビートに合わせて力強く脈動（拡大・縮小）する。
+- **中域 (Mid)**: 惑星たちが恒星の周りを公転する速度が変化する。
+- **高域 (Treble)**: 背景の星々が、きらめくように明るさを変化させる。
+
+### Lunar Phases
+- **概要**: 3x3のグリッドに配置された9つの月が、それぞれの周波数帯域に同期して満ち欠けを繰り返す、グラフィカルなシーン。
+- **低域 (Bass)**: グリッド下段の月が、低域のエネルギー量に応じて満ち欠けのサイクルを変化させる。アタックを検知すると閃光を放つ。
+- **中域 (Mid)**: グリッド中段の月が、中域のエネルギー量に応じて満ち欠けのサイクルを変化させる。アタックを検知すると閃光を放つ。
+- **高域 (Treble)**: グリッド上段の月が、高域のエネルギー量に応じて満ち欠けのサイクルを変化させる。アタックを検知すると閃光を放つ。
+
+### Elevator Shaft
+- **概要**: 3Dワイヤーフレームの六角柱シャフト内をエレベーターが無限に上昇していく様子を真横から描く。背景に流れるビル群の窓明かりが、都会的でリミナルな高揚感を演出する。
+- **低域 (Bass)**: キックドラムのアタックに合わせ、エレベーターの床面が力強く閃光を放つ。
+- **中域 (Mid)**: エレベーターの上昇速度をコントロールする。
+- **高域 (Treble)**: 背景に広がるビル群の窓が、ハイハットのリズムに合わせてランダムに明滅する。
+
+## 📏 シーン開発ガイド
+
+新規にビジュアルシーンを開発する場合は、下記のシーン開発ガイドを参照してください。  
+[./scene_development_guide.md](./scene_development_guide.md)
+
+## 💻 技術スタック
+
+-   **描画 (Graphics)**: Three.js (WebGL)
+-   **音声処理 (Audio Processing)**: Web Audio API
+-   **UI**: Tweakpane
+-   **言語 (Languages)**: HTML5, CSS3, JavaScript (ES Modules)
+
+## 📄 ライセンス
+
+Copyright (c) 2025 R-9 / EPX studio.
+
+This project is licensed under the GNU General Public License.
+
+This project utilizes third-party libraries under the following licenses:
+
+-   **Three.js**: [MIT License](https://github.com/mrdoob/three.js/blob/dev/LICENSE)
+-   **Tweakpane**: [MIT License](https://github.com/cocopon/tweakpane/blob/master/LICENSE)
+
+---
+
+# Void - Audio Visualizer v.1.4.1
 
 A minimal VJ web app for DJs that reacts to real-time audio input.  
 It is designed to be opened in a browser and used as a window capture source in OBS during a DJ set.  
@@ -13,177 +142,114 @@ Due to the nature of audio input, a loopback function on your audio interface ma
 
 ## ✨ Features
 
--   **リアルタイム音声解析**: マイクやOSのオーディオ入力から音声を取得し、**低域・中音域・高域**の3帯域に分割してビジュアルに反映します。  
-    **Real-time Audio Analysis**: Captures audio from your microphone or OS audio input and splits it into **low, mid, and high** frequency bands to reflect in the visuals.
--   **多彩なビジュアルシーン**: 音楽の特性に応じて様々な表情を見せる、複数のビジュアルシーンを搭載しています。  
-    **Diverse Visual Scenes**: Features multiple visual scenes that change their expression according to the characteristics of the music.
--   **UIコントロールパネル**: 各種パラメータ（感度、エフェクト強度、色など）をリアルタイムに調整可能です。  
-    **UI Control Panel**: Allows real-time adjustment of various parameters (sensitivity, effect intensity, colors, etc.).
--   **シーン管理機能**: 最大5つのシーンをスロットに登録し、手動または自動でスムーズに切り替えることができます。  
-    **Scene Management**: Register up to five scenes in slots and switch between them smoothly, either manually or automatically.
--   **設定の保存・読み込み機能**: 各種パラメータやスロットのシーン構成をJSONファイルとしてローカルに保存し、いつでも復元できます。これにより、お気に入りの設定をプリセットとして管理可能です。  
-    **Save/Load Settings**: Save your current parameter and scene slot configurations as a local JSON file, allowing you to restore them at any time. This enables you to manage your favorite settings as presets.
--   **オートシーン再生**: 1から5までのスロットに登録したEmptyを除く各シーンをシーケンシャルに連続再生します。シーン遷移のインターバル時間とクロスフェード時間が設定できます。ランダム再生も可能です。  
-    **Auto Scene Playback**: Sequentially plays back scenes registered in slots 1 through 5 (excluding "Empty"). You can set the interval and crossfade duration for transitions. Random playback is also available.
--   **ストロボ機能**: 低音の入力に反応して画面全体を発光させる機能です。感度と明るさを設定できます。  
-    **Strobe Effect**: A function that flashes the entire screen in response to low-frequency input. Sensitivity and brightness can be adjusted.
--   **バックグラウンド再生**: 非アクティブウィンドウの状態でも映像を再生可能なため、OBSの映像ソースとして活用できます。また、映像配信設定・CPU負荷を考慮して、バックグラウンド再生時のフレームレートを60/30/15fpsから設定可能です。  
-    **Background Playback**: Continues to render visuals even when the window is inactive, making it ideal for use as a source in OBS. You can also set the background frame rate to 60, 30, or 15 fps to manage CPU load and streaming settings.
--   **順次実装予定**: 追加ビジュアルシーン。  
-    **Coming Soon**: Additional visual scenes.
+-   **Real-time Audio Analysis**: Captures audio from your microphone or OS audio input and splits it into **low, mid, and high** frequency bands to reflect in the visuals.
+-   **Diverse Visual Scenes**: Features multiple visual scenes that change their expression according to the characteristics of the music.
+-   **UI Control Panel**: Allows real-time adjustment of various parameters (sensitivity, effect intensity, colors, etc.).
+-   **Scene Management**: Register up to five scenes in slots and switch between them smoothly, either manually or automatically.
+-   **Save/Load Settings**: Save your current parameter and scene slot configurations as a local JSON file, allowing you to restore them at any time. This enables you to manage your favorite settings as presets.
+-   **Auto Scene Playback**: Sequentially plays back scenes registered in slots 1 through 5 (excluding "Empty"). You can set the interval and crossfade duration for transitions. Random playback is also available.
+-   **Strobe Effect**: A function that flashes the entire screen in response to low-frequency input. Sensitivity and brightness can be adjusted.
+-   **Background Playback**: Continues to render visuals even when the window is inactive, making it ideal for use as a source in OBS. You can also set the background frame rate to 60, 30, or 15 fps to manage CPU load and streaming settings.
+-   **Coming Soon**: Additional visual scenes.
 
 ## 🚀 How to Use
 
-1.  アプリケーションを開くと表示される「Click to start audio」をクリックして、マイクへのアクセスを許可してください。  
-    When you open the application, click "Click to start audio" and grant microphone access.
-2.  画面右上に表示されるコントロールパネルで、各種パラメータを調整します。  
-    Adjust the various parameters using the control panel in the upper right corner of the screen.
-3.  キーボードショートカットで、より直感的な操作が可能です。  
-    Use keyboard shortcuts for more intuitive control.
+1.  When you open the application, click "Click to start audio" and grant microphone access.
+2.  Adjust the various parameters using the control panel in the upper right corner of the screen.
+3.  Use keyboard shortcuts for more intuitive control.
 
 ### Keyboard Shortcuts
 
--   **`1` - `5`**: 対応するスロットのシーンに即時切り替え。  
-    Instantly switch to the scene in the corresponding slot.
--   **`f`**: フルスクリーン表示のON/OFF(full screen)。  
-    Toggle full screen mode.
--   **`h`**: UI非表示のON/OFF(hidden)。  
-    Toggle UI visibility (hide/show).
+-   **`1` - `5`**: Instantly switch to the scene in the corresponding slot.
+-   **`f`**: Toggle full screen mode.
+-   **`h`**: Toggle UI visibility (hide/show).
 
 ### Smartphone Controls
 
--   ダブルタップでUI非表示のON/OFF。  
-    Double Tap to hide UI.
--   左右スワイプで再生スロットの切り替え。  
-    Horizontal swipe to change between slots.
+-   Double Tap to hide UI.
+-   Horizontal swipe to change between slots.
 
-## 🎭 Default Scenes (v1.4.0)
+## 🎭 Default Scenes (v1.4.1)
 
-現在、以下の11個のシーンが実装されています。  
-The following 10 scenes are currently implemented.
+The following 11 scenes are currently implemented.
 
 ### Wavy Lines
--   **概要**: 画面を横切る複数の波打つ線で構成されます。  
-    **Overview**: Composed of multiple wavy lines crossing the screen.
--   **低域 (Bass)**: 線の数に影響。  
-    **Bass**: Affects the number of lines.
--   **中域 (Mid)**: 線の波の大きさに影響。  
-    **Mid**: Affects the amplitude of the waves.
--   **高域 (Treble)**: 線のノイズ感・グリッチ感に影響。  
-    **Treble**: Affects the noise/glitchiness of the lines.
+-   **Overview**: Composed of multiple wavy lines crossing the screen.
+-   **Bass**: Affects the number of lines.
+-   **Mid**: Affects the amplitude of the waves.
+-   **Treble**: Affects the noise/glitchiness of the lines.
 
 ### Pulsing Polygon
--   **概要**: 画面中央で脈動・回転する多角形で構成されます。  
-    **Overview**: Composed of a pulsating, rotating polygon in the center of the screen.
--   **低域 (Bass)**: 多角形の大きさ（脈動）に影響。  
-    **Bass**: Affects the size (pulsation) of the polygon.
--   **中域 (Mid)**: 多角形の回転速度に影響。  
-    **Mid**: Affects the rotation speed of the polygon.
--   **高域 (Treble)**: 多角形の頂点の歪み（トゲの鋭さ）に影響。  
-    **Treble**: Affects the distortion of the polygon's vertices (sharpness of spikes).
+-   **Overview**: Composed of a pulsating, rotating polygon in the center of the screen.
+-   **Bass**: Affects the size (pulsation) of the polygon.
+-   **Mid**: Affects the rotation speed of the polygon.
+-   **Treble**: Affects the distortion of the polygon's vertices (sharpness of spikes).
 
 ### Infinite Tunnel
-- **概要**: 画面奥に向かって無限に続くワイヤーフレームのトンネル。音楽の疾走感を表現する。  
-  **Overview**: A wireframe tunnel extending infinitely toward the back of the screen, expressing the sensation of speed in music.
-- **低域 (Bass)**: ビートに合わせてトンネルの半径が一瞬拡大する。  
-  **Bass**: The tunnel's radius momentarily expands with the beat.
-- **中域 (Mid)**: トンネルを突き進むスピードが変化する。  
-  **Mid**: The speed of travel through the tunnel changes.
-- **高域 (Treble)**: ワイヤーフレームに歪みやグリッチ（ねじれ）を加える。  
-  **Treble**: Adds distortion and glitches (twists) to the wireframe.
+- **Overview**: A wireframe tunnel extending infinitely toward the back of the screen, expressing the sensation of speed in music.
+- **Bass**: The tunnel's radius momentarily expands with the beat.
+- **Mid**: The speed of travel through the tunnel changes.
+- **Treble**: Adds distortion and glitches (twists) to the wireframe.
 
 ### Rough Speakers
-- **概要**: ステレオスピーカーをイメージした複数の同心円がそれぞれ振動する。  
-  **Overview**: Multiple concentric circles, inspired by stereo speakers, each rotating independently.
-- **低域 (Bass)**: 円の線の太さが脈動するように変化する。  
-  **Bass**: The thickness of the circles' lines pulsates.
-- **中域 (Mid)**: 円の線の明るさが変化する。  
-  **Mid**: Affects the brightness of the circles' lines.
-- **高域 (Treble)**: 円周上にノイズやギザギザした乱れを加える。  
-  **Treble**: Adds noise and jagged distortions to the circumference of the circles.
+- **Overview**: Multiple concentric circles, inspired by stereo speakers, each rotating independently.
+- **Bass**: The thickness of the circles' lines pulsates.
+- **Mid**: Affects the brightness of the circles' lines.
+- **Treble**: Adds noise and jagged distortions to the circumference of the circles.
 
 ### Wireframe Mirrorball
-- **概要**: 画面中央に配置されたワイヤーフレームのミラーボールから、放射状に無数の直線が放たれる。クラシックなモチーフをミニマルに再解釈したビジュアル。  
-  **Overview**: A visual that reinterprets a classic motif in a minimal way, with countless straight lines radiating from a wireframe mirrorball in the center of the screen.
-- **低域 (Bass)**: 放射される直線が一斉に長く、そして明るくなる。  
-  **Bass**: The radiated lines simultaneously become longer and brighter.
-- **中域 (Mid)**: ミラーボール本体の回転速度が変化する。  
-  **Mid**: The rotation speed of the mirrorball itself changes.
-- **高域 (Treble)**: 放射される直線の本数や角度がランダムに変化する。  
-  **Treble**: The number and angle of the radiated lines change randomly.
+- **Overview**: A visual that reinterprets a classic motif in a minimal way, with countless straight lines radiating from a wireframe mirrorball in the center of the screen.
+- **Bass**: The radiated lines simultaneously become longer and brighter.
+- **Mid**: The rotation speed of the mirrorball itself changes.
+- **Treble**: The number and angle of the radiated lines change randomly.
 
 ### Warping Grid
-- **概要**: 画面全体に広がるグリッド（格子）が、回転しながら拡大・縮小を繰り返す。  
-  **Overview**: A grid covering the entire screen that repeatedly expands and contracts while rotating.
-- **低域 (Bass)**: ビートに合わせてグリッド全体が拡大・縮小する。  
-  **Bass**: The entire grid expands and contracts with the beat.
-- **中域 (Mid)**: グリッドの回転速度が変化する。  
-  **Mid**: The rotation speed of the grid changes.
-- **高域 (Treble)**: 格子の交点がランダムに明滅する。  
-  **Treble**: The intersections of the grid randomly blink.
+- **Overview**: A grid covering the entire screen that repeatedly expands and contracts while rotating.
+- **Bass**: The entire grid expands and contracts with the beat.
+- **Mid**: The rotation speed of the grid changes.
+- **Treble**: The intersections of the grid randomly blink.
 
 ### Pulsing 3D Grid
-- **概要**: 立方体の3Dグリッド上にプロットされた多数の円形の点が、ビートに合わせてリズミカルに脈動する。`WarpingGrid`シーンの3次元的な発展形。  
-  **Overview**: A three-dimensional evolution of the `WarpingGrid` scene, where numerous circular points plotted on a cubic 3D grid pulsate rhythmically with the beat.
-- **低域 (Bass)**: 全ての点のサイズが一斉に拡大・縮小し、力強い脈動感を表現する。  
-  **Bass**: The size of all points expands and contracts in unison, creating a powerful pulsating effect.
-- **中域 (Mid)**: グリッド全体がZ軸周りをゆっくりと回転する。  
-  **Mid**: The entire grid slowly rotates around the Z-axis.
-- **高域 (Treble)**: 各点の色や不透明度がランダムに明滅し、きらびやかな印象を与える。  
-  **Treble**: The color and opacity of each point randomly blink, creating a sparkling impression.
+- **Overview**: A three-dimensional evolution of the `WarpingGrid` scene, where numerous circular points plotted on a cubic 3D grid pulsate rhythmically with the beat.
+- **Bass**: The size of all points expands and contracts in unison, creating a powerful pulsating effect.
+- **Mid**: The entire grid slowly rotates around the Z-axis.
+- **Treble**: The color and opacity of each point randomly blink, creating a sparkling impression.
 
 ### Tri Tile
-- **概要**: 無数に敷き詰められた正三角形のタイル上を浮遊するようにカメラが移動し、音に反応してタイルがリズミカルに明滅する。  
-  **Overview**: The camera glides over a field of countless equilateral triangles, which rhythmically flash in response to the audio.
-- **低域 (Bass)**: すべてのタイルが一斉に、そして瞬間的に発光するパルスエフェクトを発生させる。  
-  **Bass**: Triggers a pulse effect, causing all tiles to flash in unison momentarily.
-- **中域 (Mid)**: タイルの上をカメラが移動する速度が変化する。  
-  **Mid**: Changes the speed of the camera's movement across the tiles.
-- **高域 (Treble)**: ランダムに選択されたタイルが、前景（白）色で強く点灯する。  
-  **Treble**: Causes randomly selected tiles to light up brightly in the foreground color.
+- **Overview**: The camera glides over a field of countless equilateral triangles, which rhythmically flash in response to the audio.
+- **Bass**: Triggers a pulse effect, causing all tiles to flash in unison momentarily.
+- **Mid**: Changes the speed of the camera's movement across the tiles.
+- **Treble**: Causes randomly selected tiles to light up brightly in the foreground color.
 
 ### Solar System
-- **概要**: 3D空間に浮かぶミニマルな太陽系。中央の恒星の周りを惑星が公転し、カメラもその周りを滑らかに旋回する。  
-  **Overview**: A minimal solar system floating in 3D space. Planets orbit a central star, and the camera smoothly revolves around the scene.
-- **低域 (Bass)**: 中央の恒星が、ビートに合わせて力強く脈動（拡大・縮小）する。  
-  **Bass**: The central star pulsates powerfully in size with the beat.
-- **中域 (Mid)**: 惑星たちが恒星の周りを公転する速度が変化する。  
-  **Mid**: Changes the speed at which the planets orbit the star.
-- **高域 (Treble)**: 背景の星々が、きらめくように明るさを変化させる。  
-  **Treble**: The background stars twinkle, changing their brightness.
+- **Overview**: A minimal solar system floating in 3D space. Planets orbit a central star, and the camera smoothly revolves around the scene.
+- **Bass**: The central star pulsates powerfully in size with the beat.
+- **Mid**: Changes the speed at which the planets orbit the star.
+- **Treble**: The background stars twinkle, changing their brightness.
 
 ### Lunar Phases
-- **概要**: 3x3のグリッドに配置された9つの月が、それぞれの周波数帯域に同期して満ち欠けを繰り返す、グラフィカルなシーン。
-  **Overview**: A graphical scene where nine moons arranged in a 3x3 grid wax and wane in sync with their respective frequency bands.
-- **低域 (Bass)**: グリッド下段の月が、低域のエネルギー量に応じて満ち欠けのサイクルを変化させる。アタックを検知すると閃光を放つ。
-  **Bass**: The bottom row of moons cycles through its phases according to the bass energy level. It emits a flash when an attack is detected.
-- **中域 (Mid)**: グリッド中段の月が、中域のエネルギー量に応じて満ち欠けのサイクルを変化させる。アタックを検知すると閃光を放つ。
-  **Mid**: The middle row of moons cycles through its phases according to the mid-range energy level. It emits a flash when an attack is detected.
-- **高域 (Treble)**: グリッド上段の月が、高域のエネルギー量に応じて満ち欠けのサイクルを変化させる。アタックを検知すると閃光を放つ。
-  **Treble**: The top row of moons cycles through its phases according to the treble energy level. It emits a flash when an attack is detected.
+- **Overview**: A graphical scene where nine moons arranged in a 3x3 grid wax and wane in sync with their respective frequency bands.
+- **Bass**: The bottom row of moons cycles through its phases according to the bass energy level. It emits a flash when an attack is detected.
+- **Mid**: The middle row of moons cycles through its phases according to the mid-range energy level. It emits a flash when an attack is detected.
+- **Treble**: The top row of moons cycles through its phases according to the treble energy level. It emits a flash when an attack is detected.
 
 ### Elevator Shaft
-- **概要**: 3Dワイヤーフレームの六角柱シャフト内をエレベーターが無限に上昇していく様子を真横から描く。背景に流れるビル群の窓明かりが、都会的でリミナルな高揚感を演出する。
-  **Overview**: Depicts a side-view of an elevator endlessly ascending within a 3D wireframe hexagonal shaft. The scrolling city lights in the background create an urban, liminal, and uplifting atmosphere.
-- **低域 (Bass)**: キックドラムのアタックに合わせ、エレベーターの床面が力強く閃光を放つ。
-  **Bass**: The elevator floor emits a powerful flash in sync with bass attacks.
-- **中域 (Mid)**: エレベーターの上昇速度をコントロールする。
-  **Mid**: Controls the ascent speed of the elevator.
-- **高域 (Treble)**: 背景に広がるビル群の窓が、ハイハットのリズムに合わせてランダムに明滅する。
-  **Treble**: The windows of the background buildings flicker randomly in time with the high-frequency rhythms.
+- **Overview**: Depicts a side-view of an elevator endlessly ascending within a 3D wireframe hexagonal shaft. The scrolling city lights in the background create an urban, liminal, and uplifting atmosphere.
+- **Bass**: The elevator floor emits a powerful flash in sync with bass attacks.
+- **Mid**: Controls the ascent speed of the elevator.
+- **Treble**: The windows of the background buildings flicker randomly in time with the high-frequency rhythms.
 
-## 📏 Scene Development Guide
+## 📏 Scene Development Guide (JP)
 
-新規にビジュアルシーンを開発する場合は、下記のシーン開発ガイドを参照してください。  
-When developing new visual scenes, please refer to the scene development guide below.  
+When developing new visual scenes, please refer to the scene development guide below (Currently only in Japanese).  
 [./scene_development_guide.md](./scene_development_guide.md)
 
 ## 💻 Tech Stack
 
--   **描画 (Graphics)**: Three.js (WebGL)
--   **音声処理 (Audio Processing)**: Web Audio API
+-   **Graphics**: Three.js (WebGL)
+-   **Audio Processing**: Web Audio API
 -   **UI**: Tweakpane
--   **言語 (Languages)**: HTML5, CSS3, JavaScript (ES Modules)
+-   **Languages**: HTML5, CSS3, JavaScript (ES Modules)
 
 ## 📄 License
 
