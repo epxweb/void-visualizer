@@ -59,8 +59,8 @@ Due to the nature of audio input, a loopback function on your audio interface ma
 
 ## 🎭 Default Scenes (v1.4.0)
 
-現在、以下の9つのシーンが実装されています。  
-The following 9 scenes are currently implemented.
+現在、以下の10個のシーンが実装されています。  
+The following 10 scenes are currently implemented.
 
 ### Wavy Lines
 -   **概要**: 画面を横切る複数の波打つ線で構成されます。  
@@ -151,6 +151,16 @@ The following 9 scenes are currently implemented.
   **Mid**: Changes the speed at which the planets orbit the star.
 - **高域 (Treble)**: 背景の星々が、きらめくように明るさを変化させる。  
   **Treble**: The background stars twinkle, changing their brightness.
+
+### Lunar Phases
+- **概要**: 3x3のグリッドに配置された9つの月が、それぞれの周波数帯域に同期して満ち欠けを繰り返す、グラフィカルなシーン。
+  **Overview**: A graphical scene where nine moons arranged in a 3x3 grid wax and wane in sync with their respective frequency bands.
+- **低域 (Bass)**: グリッド下段の月が、低域のエネルギー量に応じて満ち欠けのサイクルを変化させる。アタックを検知すると閃光を放つ。
+  **Bass**: The bottom row of moons cycles through its phases according to the bass energy level. It emits a flash when an attack is detected.
+- **中域 (Mid)**: グリッド中段の月が、中域のエネルギー量に応じて満ち欠けのサイクルを変化させる。アタックを検知すると閃光を放つ。
+  **Mid**: The middle row of moons cycles through its phases according to the mid-range energy level. It emits a flash when an attack is detected.
+- **高域 (Treble)**: グリッド上段の月が、高域のエネルギー量に応じて満ち欠けのサイクルを変化させる。アタックを検知すると閃光を放つ。
+  **Treble**: The top row of moons cycles through its phases according to the treble energy level. It emits a flash when an attack is detected.
 
 ## 📏 Scene Development Guide
 

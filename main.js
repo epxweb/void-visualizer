@@ -14,6 +14,7 @@ import { WarpingGridScene } from './scenes/WarpingGrid.js';
 import { Pulsing3DGridScene } from './scenes/Pulsing3DGrid.js';
 import { TriTileScene } from './scenes/TriTile.js';
 import { SolarSystemScene } from './scenes/SolarSystem.js';
+import { LunarPhasesScene } from './scenes/LunarPhases.js';
 import { Transitioner } from './core/Transitioner.js';
 import { FadeShader } from './shaders/FadeShader.js';
 import { StrobeShader } from './shaders/StrobeShader.js';
@@ -65,6 +66,7 @@ const sceneManager = {
     this.availableScenes['Pulsing 3D Grid'] = Pulsing3DGridScene;
     this.availableScenes['Tri Tile'] = TriTileScene;
     this.availableScenes['Solar System'] = SolarSystemScene;
+    this.availableScenes['Lunar Phases'] = LunarPhasesScene;
     this.availableScenes['Empty'] = null; // Emptyスロット用の定義
 
     const sceneKeys = Object.keys(this.availableScenes).filter(k => k !== 'Empty');
