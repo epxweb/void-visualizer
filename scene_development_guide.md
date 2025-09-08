@@ -123,18 +123,21 @@ class MyScene {
 
 ### 6. 登録方法
 
-作成したシーンクラスをアプリケーションで利用可能にするには、`main.js`に以下の2つの変更を加える必要があります。
+作成したシーンクラスをアプリケーションで利用可能にするには、`main.js` の `sceneManager` の定義を修正するだけです。
 
-1.  **ファイルのインポート**: `main.js`の先頭で、作成したシーンファイルをインポートします。
-
-    ```javascript
-    // main.js
-    import { MyNewScene } from './scenes/MyNewScene.js';
-    ```
-
-2.  **`sceneManager`への登録**: `sceneManager`の`init`メソッド内で、`availableScenes`オブジェクトにシーンを追加します。キーにはUIに表示される名前、値にはクラスそのものを指定します。
+1.  **`main.js` を開く**: `sceneManager` オブジェクト内の `init()` メソッドを探します。
+2.  **`availableScenes` に行を追加**: `availableScenes` オブジェクトに、新しいシーンのエントリを追加します。キーにはUIに表示される名前、値には**ファイルへのパス**と**クラス名**を正確に指定してください。
 
     ```javascript
     // main.js の sceneManager.init(...) 内
-    this.availableScenes['My New Scene'] = MyNewScene;
+
+    this.availableScenes = {
+      'Wavy Lines': { path: './scenes/WavyLines.js', className: 'WavyLinesScene' },
+      // ... 既存のシーン定義 ...
+      'Elevator Shaft': { path: './scenes/ElevatorShaft.js', className: 'ElevatorShaftScene' },
+      'My New Scene': { path: './scenes/MyNewScene.js', className: 'MyNewScene' }, // ← このように一行追加
+      'Empty': null
+    };
     ```
+
+これだけで、アプリケーションは新しいシーンを自動的に認識し、UIのドロップダウンリストに追加します。
