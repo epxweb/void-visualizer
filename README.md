@@ -38,7 +38,7 @@
 
 ## 🎭 デフォルトシーン (v1.4.1)
 
-現在、以下の12個のシーンが実装されています。
+現在、以下の13個のシーンが実装されています。
 
 ### Wavy Lines
 -   **概要**: 画面を横切る複数の波打つ線で構成されます。
@@ -105,6 +105,12 @@
 - **低域 (Bass)**: キックドラムのアタックに合わせ、エレベーターの床面が力強く閃光を放つ。
 - **中域 (Mid)**: エレベーターの上昇速度をコントロールする。
 - **高域 (Treble)**: 背景に広がるビル群の窓が、ハイハットのリズムに合わせてランダムに明滅する。
+
+### ASCII Dance
+- **概要**: 画面を埋め尽くすASCII文字が、雲のようにうごめきながら音に反応する、タイポグラフィベースのビジュアル。
+- **低域 (Bass)**: 文字全体の明るさが変化し、ビートに合わせて閃光のように明滅する。
+- **中域 (Mid)**: 文字の雲がうごめく速度が変化する。
+- **高域 (Treble)**: 文字がグリッチのようにランダムな記号へ高速に入れ替わる。
 
 ### Audio Graph
 - **概要**: オーディオ解析データ（`bass`, `mid`, `treble`とそれぞれのアタック値）を、システムパフォーマンスモニターのような6つのリアルタイムライングラフとして可視化します。
@@ -177,7 +183,7 @@ Due to the nature of audio input, a loopback function on your audio interface ma
 
 ## 🎭 Default Scenes (v1.4.1)
 
-The following 12 scenes are currently implemented.
+The following 13 scenes are currently implemented.
 
 ### Wavy Lines
 -   **Overview**: Composed of multiple wavy lines crossing the screen.
@@ -244,6 +250,12 @@ The following 12 scenes are currently implemented.
 - **Bass**: The elevator floor emits a powerful flash in sync with bass attacks.
 - **Mid**: Controls the ascent speed of the elevator.
 - **Treble**: The windows of the background buildings flicker randomly in time with the high-frequency rhythms.
+
+### ASCII Dance
+- **Overview**: A typography-based visual where a full-screen grid of ASCII characters reacts to the sound, moving like a cloud.
+- **Bass**: Affects the overall brightness of the characters, causing them to flash like a strobe with the beat.
+- **Mid**: Controls the speed of the cloud-like movement of the characters.
+- **Treble**: Triggers a glitch effect, causing characters to rapidly change to random symbols.
 
 ### Audio Graph
 - **Overview**: Visualizes the raw audio analysis data (`bass`, `mid`, `treble`, and their respective attack values) as six real-time line graphs, resembling a system performance monitor.
