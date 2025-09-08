@@ -38,7 +38,7 @@
 
 ## 🎭 デフォルトシーン (v1.4.1)
 
-現在、以下の11個のシーンが実装されています。
+現在、以下の12個のシーンが実装されています。
 
 ### Wavy Lines
 -   **概要**: 画面を横切る複数の波打つ線で構成されます。
@@ -106,6 +106,12 @@
 - **中域 (Mid)**: エレベーターの上昇速度をコントロールする。
 - **高域 (Treble)**: 背景に広がるビル群の窓が、ハイハットのリズムに合わせてランダムに明滅する。
 
+### Audio Graph
+- **概要**: オーディオ解析データ（`bass`, `mid`, `treble`とそれぞれのアタック値）を、システムパフォーマンスモニターのような6つのリアルタイムライングラフとして可視化します。
+- **低域 (Bass)**: 左下のグラフに`bass`のエネルギー量が、右下のグラフに`bassAttack`の値がリアルタイムで描画されます。
+- **中域 (Mid)**: 左中央のグラフに`mid`のエネルギー量が、右中央のグラフに`midAttack`の値がリアルタイムで描画されます。
+- **高域 (Treble)**: 左上のグラフに`treble`のエネルギー量が、右上のグラフに`trebleAttack`の値がリアルタイムで描画されます。
+
 ## 📏 シーン開発ガイド
 
 新規にビジュアルシーンを開発する場合は、下記のシーン開発ガイドを参照してください。  
@@ -171,7 +177,7 @@ Due to the nature of audio input, a loopback function on your audio interface ma
 
 ## 🎭 Default Scenes (v1.4.1)
 
-The following 11 scenes are currently implemented.
+The following 12 scenes are currently implemented.
 
 ### Wavy Lines
 -   **Overview**: Composed of multiple wavy lines crossing the screen.
@@ -238,6 +244,12 @@ The following 11 scenes are currently implemented.
 - **Bass**: The elevator floor emits a powerful flash in sync with bass attacks.
 - **Mid**: Controls the ascent speed of the elevator.
 - **Treble**: The windows of the background buildings flicker randomly in time with the high-frequency rhythms.
+
+### Audio Graph
+- **Overview**: Visualizes the raw audio analysis data (`bass`, `mid`, `treble`, and their respective attack values) as six real-time line graphs, resembling a system performance monitor.
+- **Bass**: The `bass` energy level is drawn in the bottom-left graph, and the `bassAttack` value is drawn in the bottom-right graph in real-time.
+- **Mid**: The `mid` energy level is drawn in the center-left graph, and the `midAttack` value is drawn in the center-right graph in real-time.
+- **Treble**: The `treble` energy level is drawn in the top-left graph, and the `trebleAttack` value is drawn in the top-right graph in real-time.
 
 ## 📏 Scene Development Guide (JP)
 

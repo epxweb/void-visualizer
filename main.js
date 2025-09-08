@@ -67,6 +67,7 @@ const sceneManager = {
       'Solar System': { path: './scenes/SolarSystem.js', className: 'SolarSystemScene' },
       'Lunar Phases': { path: './scenes/LunarPhases.js', className: 'LunarPhasesScene' },
       'Elevator Shaft': { path: './scenes/ElevatorShaft.js', className: 'ElevatorShaftScene' },
+      'Audio Graph': { path: './scenes/AudioGraph.js', className: 'AudioGraphScene' },
       'Empty': null
     };
 
