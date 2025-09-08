@@ -69,7 +69,7 @@ export class ASCIIDanceScene {
           float charGridSize = 16.0;
           float noiseScale = 0.3;
           
-          float noiseSpeed = mid * 1.0 + 0.1;
+          float noiseSpeed = mid * 0.3 + 0.02;
           float noiseVal = simpleNoise(p * noiseScale, noiseSpeed);
           
           vec2 gridUv = floor(p * charGridSize) / charGridSize;
@@ -132,7 +132,7 @@ export class ASCIIDanceScene {
     canvas.height = size;
     const ctx = canvas.getContext('2d');
     ctx.font = '24px monospace';
-    ctx.fillStyle = '#888888';
+    ctx.fillStyle = '#666666';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
 
