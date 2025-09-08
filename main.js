@@ -47,6 +47,7 @@ const sceneManager = {
   activeInstances: [],
   currentSlotIndex: 0,
   lastSwitchTime: 0,
+  isSwitching: false, // 切り替え中の競合を防ぐためのフラグ
 
   async init(threeScene, params) {
     this.threeScene = threeScene;
@@ -71,13 +72,21 @@ const sceneManager = {
 
     // 初期スロットのシーンを非同期でプリロード＆インスタンス化
     const sceneKeys = Object.keys(this.availableScenes).filter(k => k !== 'Empty');
+    const initialSlotPromises = [];
+
     for (let i = 0; i < 5; i++) {
       const sceneName = sceneKeys[i % sceneKeys.length];
       this.activeSlots[i] = sceneName;
-      const instance = await this.createSceneInstance(sceneName);
-      if (instance) instance.hide();
-      this.activeInstances[i] = instance;
+      // Promiseを作成し、配列に追加
+      const instancePromise = this.createSceneInstance(sceneName).then(instance => {
+        if (instance) instance.hide();
+        return instance;
+      });
+      initialSlotPromises.push(instancePromise);
     }
+
+    // すべてのインスタンス生成を並列で待つ
+    this.activeInstances = await Promise.all(initialSlotPromises);
     
     this.setCurrentSlot(0);
     if (this.activeInstances[0]) this.activeInstances[0].show();
@@ -128,8 +137,10 @@ const sceneManager = {
   },
 
   async switchTo(slotIndex) {
-    if (slotIndex < 0 || slotIndex >= 5 || slotIndex === this.currentSlotIndex) return;
+    if (this.isSwitching || slotIndex < 0 || slotIndex >= 5 || slotIndex === this.currentSlotIndex) return;
     
+    this.isSwitching = true;
+
     const fromInstance = this.activeInstances[this.currentSlotIndex];
     let toInstance = this.activeInstances[slotIndex];
 
@@ -140,8 +151,18 @@ const sceneManager = {
       this.activeInstances[slotIndex] = toInstance;
     }
 
+    if (!toInstance) {
+        console.error(`Failed to switch to slot ${slotIndex}. Instance creation failed.`);
+        this.isSwitching = false;
+        return;
+    }
+
     const started = transitioner.start(fromInstance, toInstance, slotIndex);
-    if (started) this.lastSwitchTime = clock.getElapsedTime();
+    if (started) {
+        this.lastSwitchTime = clock.getElapsedTime();
+    } else {
+        this.isSwitching = false;
+    }
   },
   
   switchToNext() {
@@ -303,9 +324,16 @@ const setupUI = () => {
     slotParams[`Slot ${i + 1}`] = sceneManager.activeSlots[i];
   }
 
-  // UIでのシーン変更時の処理 (正しいループのみを残す)
+  // UIでのシーン変更時の処理
   for (let i = 1; i <= 5; i++) {
-    sceneFolder.addBinding(slotParams, `Slot ${i}`, { options: sceneOptions }).on('change', (ev) => {
+    sceneFolder.addBinding(slotParams, `Slot ${i}`, { options: sceneOptions }).on('change', async (ev) => {
+      if (sceneManager.isSwitching) {
+        console.warn("Cannot change scene while a transition is active.");
+        // UIの値をプログラム的に元に戻す
+        ev.target.binding.value.write(sceneManager.activeSlots[i - 1]);
+        return;
+      }
+
       const slotIndex = i - 1;
       const newSceneName = ev.value;
 
@@ -320,11 +348,12 @@ const setupUI = () => {
       
       // もし現在アクティブなスロットを変更した場合は、即座にインスタンスを生成して表示
       if (slotIndex === sceneManager.currentSlotIndex) {
-        sceneManager.createSceneInstance(newSceneName).then(newInstance => {
-            sceneManager.activeInstances[slotIndex] = newInstance;
-            if(newInstance) newInstance.show();
-            updateCurrentSceneDisplay();
-        });
+        sceneManager.isSwitching = true;
+        const newInstance = await sceneManager.createSceneInstance(newSceneName);
+        sceneManager.activeInstances[slotIndex] = newInstance;
+        if (newInstance) newInstance.show();
+        updateCurrentSceneDisplay();
+        sceneManager.isSwitching = false;
       }
     });
   }
@@ -509,6 +538,7 @@ const renderFrame = () => {
       if(transitioner.fromScene) transitioner.fromScene.hide();
       if(transitioner.toScene) transitioner.toScene.show(); // 遷移先を表示
       transitioner.stop();
+      sceneManager.isSwitching = false;
     }
   } else {
     composer.passes[0].enabled = true;
