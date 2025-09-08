@@ -5,17 +5,6 @@ import { ShaderPass } from 'https://cdn.skypack.dev/three@0.128.0/examples/jsm/p
 import { Pane } from 'https://cdn.jsdelivr.net/npm/tweakpane@4.0.3/dist/tweakpane.min.js';
 
 // --- モジュールとシェーダーをインポート ---
-import { WavyLinesScene } from './scenes/WavyLines.js';
-import { PulsingPolygonScene } from './scenes/PulsingPolygon.js';
-import { InfiniteTunnelScene } from './scenes/InfiniteTunnel.js';
-import { RoughSpeakersScene } from './scenes/RoughSpeakers.js';
-import { WireframeMirrorballScene } from './scenes/WireframeMirrorball.js';
-import { WarpingGridScene } from './scenes/WarpingGrid.js';
-import { Pulsing3DGridScene } from './scenes/Pulsing3DGrid.js';
-import { TriTileScene } from './scenes/TriTile.js';
-import { SolarSystemScene } from './scenes/SolarSystem.js';
-import { LunarPhasesScene } from './scenes/LunarPhases.js';
-import { ElevatorShaftScene } from './scenes/ElevatorShaft.js';
 import { Transitioner } from './core/Transitioner.js';
 import { FadeShader } from './shaders/FadeShader.js';
 import { StrobeShader } from './shaders/StrobeShader.js';
@@ -53,55 +42,110 @@ const params = {
 
 const sceneManager = {
   availableScenes: {},
+  sceneCache: {},
   activeSlots: [],
+  activeInstances: [],
   currentSlotIndex: 0,
   lastSwitchTime: 0,
 
-  init(threeScene, params) {
-    this.availableScenes['Wavy Lines'] = WavyLinesScene;
-    this.availableScenes['Pulsing Polygon'] = PulsingPolygonScene;
-    this.availableScenes['Infinite Tunnel'] = InfiniteTunnelScene;
-    this.availableScenes['Rough Speakers'] = RoughSpeakersScene;
-    this.availableScenes['Wireframe Mirrorball'] = WireframeMirrorballScene;
-    this.availableScenes['Warping Grid'] = WarpingGridScene;
-    this.availableScenes['Pulsing 3D Grid'] = Pulsing3DGridScene;
-    this.availableScenes['Tri Tile'] = TriTileScene;
-    this.availableScenes['Solar System'] = SolarSystemScene;
-    this.availableScenes['Lunar Phases'] = LunarPhasesScene;
-    this.availableScenes['Elevator Shaft'] = ElevatorShaftScene;
-    this.availableScenes['Empty'] = null; // Emptyスロット用の定義
+  async init(threeScene, params) {
+    this.threeScene = threeScene;
+    this.params = params;
+    this.camera = camera;
 
+    // クラス本体ではなく、ファイルパスとクラス名を保持
+    this.availableScenes = {
+      'Wavy Lines': { path: './scenes/WavyLines.js', className: 'WavyLinesScene' },
+      'Pulsing Polygon': { path: './scenes/PulsingPolygon.js', className: 'PulsingPolygonScene' },
+      'Infinite Tunnel': { path: './scenes/InfiniteTunnel.js', className: 'InfiniteTunnelScene' },
+      'Rough Speakers': { path: './scenes/RoughSpeakers.js', className: 'RoughSpeakersScene' },
+      'Wireframe Mirrorball': { path: './scenes/WireframeMirrorball.js', className: 'WireframeMirrorballScene' },
+      'Warping Grid': { path: './scenes/WarpingGrid.js', className: 'WarpingGridScene' },
+      'Pulsing 3D Grid': { path: './scenes/Pulsing3DGrid.js', className: 'Pulsing3DGridScene' },
+      'Tri Tile': { path: './scenes/TriTile.js', className: 'TriTileScene' },
+      'Solar System': { path: './scenes/SolarSystem.js', className: 'SolarSystemScene' },
+      'Lunar Phases': { path: './scenes/LunarPhases.js', className: 'LunarPhasesScene' },
+      'Elevator Shaft': { path: './scenes/ElevatorShaft.js', className: 'ElevatorShaftScene' },
+      'Empty': null
+    };
+
+    // 初期スロットのシーンを非同期でプリロード＆インスタンス化
     const sceneKeys = Object.keys(this.availableScenes).filter(k => k !== 'Empty');
     for (let i = 0; i < 5; i++) {
-      const SceneClass = this.availableScenes[sceneKeys[i % sceneKeys.length]];
-      this.activeSlots[i] = new SceneClass(threeScene, params, camera);
-      this.activeSlots[i].hide();
+      const sceneName = sceneKeys[i % sceneKeys.length];
+      this.activeSlots[i] = sceneName;
+      const instance = await this.createSceneInstance(sceneName);
+      if (instance) instance.hide();
+      this.activeInstances[i] = instance;
     }
     
     this.setCurrentSlot(0);
-    this.activeSlots[0].show();
+    if (this.activeInstances[0]) this.activeInstances[0].show();
   },
 
-  update(audioData, time) {
-    if (transitioner.isActive) {
-      if(transitioner.fromScene) transitioner.fromScene.update(audioData, time);
-      if(transitioner.toScene) transitioner.toScene.update(audioData, time);
-    } else if (this.activeSlots[this.currentSlotIndex]) {
-      this.activeSlots[this.currentSlotIndex].update(audioData, time);
+  // シーンをプリロードしてキャッシュする関数
+  async preloadScene(sceneName) {
+    if (!sceneName || sceneName === 'Empty' || this.sceneCache[sceneName]) {
+      return true; // プリロード不要または既にキャッシュ済み
+    }
+    const sceneInfo = this.availableScenes[sceneName];
+    if (!sceneInfo) {
+      console.error(`Scene info not found for: ${sceneName}`);
+      return false;
+    }
+    try {
+      const module = await import(sceneInfo.path);
+      this.sceneCache[sceneName] = module[sceneInfo.className];
+      console.log(`Scene preloaded: ${sceneName}`);
+      return true;
+    } catch (err) {
+      console.error(`Failed to preload scene: ${sceneName}`, err);
+      return false;
     }
   },
 
-  switchTo(slotIndex) {
-    if (slotIndex < 0 || slotIndex >= this.activeSlots.length || slotIndex === this.currentSlotIndex) return;
-    const fromScene = this.activeSlots[this.currentSlotIndex];
-    const toScene = this.activeSlots[slotIndex];
+  // シーン名からインスタンスを生成する関数
+  async createSceneInstance(sceneName) {
+    if (!sceneName || sceneName === 'Empty') return null;
+
+    if (!this.sceneCache[sceneName]) {
+      const success = await this.preloadScene(sceneName);
+      if (!success) return null;
+    }
+
+    const SceneClass = this.sceneCache[sceneName];
+    return new SceneClass(this.threeScene, this.params, this.camera);
+  },
+
+  update(audioData, time) {
+    const currentInstance = this.activeInstances[this.currentSlotIndex];
+    if (transitioner.isActive) {
+      if(transitioner.fromScene) transitioner.fromScene.update(audioData, time);
+      if(transitioner.toScene) transitioner.toScene.update(audioData, time);
+    } else if (currentInstance) {
+      currentInstance.update(audioData, time);
+    }
+  },
+
+  async switchTo(slotIndex) {
+    if (slotIndex < 0 || slotIndex >= 5 || slotIndex === this.currentSlotIndex) return;
     
-    const started = transitioner.start(fromScene, toScene, slotIndex);
+    const fromInstance = this.activeInstances[this.currentSlotIndex];
+    let toInstance = this.activeInstances[slotIndex];
+
+    // もしインスタンスがまだなければ非同期で生成
+    if (!toInstance) {
+      const sceneName = this.activeSlots[slotIndex];
+      toInstance = await this.createSceneInstance(sceneName);
+      this.activeInstances[slotIndex] = toInstance;
+    }
+
+    const started = transitioner.start(fromInstance, toInstance, slotIndex);
     if (started) this.lastSwitchTime = clock.getElapsedTime();
   },
   
   switchToNext() {
-    const availableSlots = this.activeSlots.map((s, i) => s ? i : -1).filter(i => i !== -1);
+    const availableSlots = this.activeSlots.map((name, i) => name !== 'Empty' ? i : -1).filter(i => i !== -1);
     if (availableSlots.length < 2) return;
 
     let nextSlotIndex;
@@ -118,12 +162,12 @@ const sceneManager = {
   },
 
   switchToNextSequential() {
-    const nextSlotIndex = (this.currentSlotIndex + 1) % this.activeSlots.length;
+    const nextSlotIndex = (this.currentSlotIndex + 1) % 5;
     this.switchTo(nextSlotIndex);
   },
 
   switchToPreviousSequential() {
-    const prevSlotIndex = (this.currentSlotIndex - 1 + this.activeSlots.length) % this.activeSlots.length;
+    const prevSlotIndex = (this.currentSlotIndex - 1 + 5) % 5;
     this.switchTo(prevSlotIndex);
   },
   
@@ -134,9 +178,9 @@ const sceneManager = {
   },
 
   updateForegroundColor(color) {
-    this.activeSlots.forEach(sceneInstance => {
-        if (sceneInstance && sceneInstance.updateForegroundColor) {
-            sceneInstance.updateForegroundColor(color);
+    this.activeInstances.forEach(instance => {
+        if (instance && instance.updateForegroundColor) {
+            instance.updateForegroundColor(color);
         }
     });
   }
@@ -146,12 +190,11 @@ let currentSceneDisplay;
 
 const updateCurrentSceneDisplay = () => {
     if (!currentSceneDisplay) return;
-    const currentScene = sceneManager.activeSlots[sceneManager.currentSlotIndex];
-    const sceneName = currentScene ? Object.keys(sceneManager.availableScenes).find(key => sceneManager.availableScenes[key] === currentScene.constructor) : 'Empty';
+    const sceneName = sceneManager.activeSlots[sceneManager.currentSlotIndex] || 'Empty';
     currentSceneDisplay.textContent = `Now Playing: [${sceneManager.currentSlotIndex + 1}] ${sceneName}`;
 };
 
-const init = () => {
+const init = async () => {
   scene = new THREE.Scene();
   camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
   camera.position.z = 10;
@@ -161,7 +204,7 @@ const init = () => {
   document.body.appendChild(renderer.domElement);
   
   setupWorker();
-  sceneManager.init(scene, params);
+  await sceneManager.init(scene, params);
   setupPostprocessing();
   setupUI();
 
@@ -257,27 +300,32 @@ const setupUI = () => {
   const sceneOptions = Object.keys(sceneManager.availableScenes).map(name => ({ text: name, value: name }));
 
   for (let i = 0; i < 5; i++) {
-    const sceneInstance = sceneManager.activeSlots[i];
-    slotParams[`Slot ${i + 1}`] = sceneInstance ? Object.keys(sceneManager.availableScenes).find(key => sceneManager.availableScenes[key] === sceneInstance.constructor) : 'Empty';
+    slotParams[`Slot ${i + 1}`] = sceneManager.activeSlots[i];
   }
 
+  // UIでのシーン変更時の処理 (正しいループのみを残す)
   for (let i = 1; i <= 5; i++) {
     sceneFolder.addBinding(slotParams, `Slot ${i}`, { options: sceneOptions }).on('change', (ev) => {
       const slotIndex = i - 1;
-      const oldScene = sceneManager.activeSlots[slotIndex];
-      if (oldScene && oldScene.dispose) oldScene.dispose();
+      const newSceneName = ev.value;
 
-      const NewSceneClass = sceneManager.availableScenes[ev.value];
-      const newScene = NewSceneClass ? new NewSceneClass(scene, params, camera) : null;
-      sceneManager.activeSlots[slotIndex] = newScene;
+      // 古いインスタンスを破棄
+      const oldInstance = sceneManager.activeInstances[slotIndex];
+      if (oldInstance && oldInstance.dispose) oldInstance.dispose();
+      sceneManager.activeInstances[slotIndex] = null;
 
+      // 新しいシーン名を設定し、プリロードを開始
+      sceneManager.activeSlots[slotIndex] = newSceneName;
+      sceneManager.preloadScene(newSceneName);
+      
+      // もし現在アクティブなスロットを変更した場合は、即座にインスタンスを生成して表示
       if (slotIndex === sceneManager.currentSlotIndex) {
-        if(oldScene) oldScene.hide();
-        if(newScene) newScene.show();
-      } else {
-        if(newScene) newScene.hide();
+        sceneManager.createSceneInstance(newSceneName).then(newInstance => {
+            sceneManager.activeInstances[slotIndex] = newInstance;
+            if(newInstance) newInstance.show();
+            updateCurrentSceneDisplay();
+        });
       }
-      updateCurrentSceneDisplay();
     });
   }
 
@@ -459,6 +507,7 @@ const renderFrame = () => {
     if (transitioner.progress >= 1.0) {
       sceneManager.setCurrentSlot(transitioner.toSlotIndex);
       if(transitioner.fromScene) transitioner.fromScene.hide();
+      if(transitioner.toScene) transitioner.toScene.show(); // 遷移先を表示
       transitioner.stop();
     }
   } else {
@@ -544,10 +593,7 @@ const toggleFullscreen = () => {
 const saveSettings = () => {
   const settings = {
     params: params,
-    slots: sceneManager.activeSlots.map(scene => {
-      if (!scene) return 'Empty';
-      return Object.keys(sceneManager.availableScenes).find(key => sceneManager.availableScenes[key] === scene.constructor);
-    }),
+    slots: sceneManager.activeSlots, // インスタンスではなくシーン名を保存
     currentSlotIndex: sceneManager.currentSlotIndex
   };
 
@@ -564,7 +610,7 @@ const saveSettings = () => {
   URL.revokeObjectURL(url);
 };
 
-const applySettings = (settings) => {
+const applySettings = async (settings) => {
   console.log("Applying settings...");
   stopAnimationLoop();
 
@@ -574,37 +620,42 @@ const applySettings = (settings) => {
   Object.assign(params.transition, settings.params.transition);
   Object.assign(params.system, settings.params.system);
 
-  sceneManager.activeSlots.forEach(scene => {
-    if (scene && scene.dispose) {
-      scene.dispose();
-    }
-  });
+  // 新しいスロット設定のシーンをすべてプリロード
+  const preloadPromises = settings.slots.map(sceneName => sceneManager.preloadScene(sceneName));
+  await Promise.all(preloadPromises);
+  console.log("All scenes from settings are preloaded.");
 
-  const newSlots = settings.slots.map(sceneName => {
-    const SceneClass = sceneManager.availableScenes[sceneName];
-    return SceneClass ? new SceneClass(scene, params, camera) : null;
+  // 古いインスタンスをすべて破棄
+  sceneManager.activeInstances.forEach(instance => {
+    if (instance && instance.dispose) instance.dispose();
   });
-  sceneManager.activeSlots = newSlots;
+  sceneManager.activeInstances = [];
 
+  // プリロード済みのキャッシュから新しいインスタンスを生成
+  const newInstancesPromises = settings.slots.map(sceneName => sceneManager.createSceneInstance(sceneName));
+  const newInstances = await Promise.all(newInstancesPromises);
+
+  sceneManager.activeSlots = settings.slots;
+  sceneManager.activeInstances = newInstances;
+  
   for (let i = 0; i < 5; i++) {
-    const sceneName = settings.slots[i] || 'Empty';
-    slotParams[`Slot ${i + 1}`] = sceneName;
+    slotParams[`Slot ${i + 1}`] = settings.slots[i] || 'Empty';
   }
   
   const newIndex = settings.currentSlotIndex || 0;
-  sceneManager.setCurrentSlot(newIndex);
   
-  sceneManager.activeSlots.forEach((scene, index) => {
-    if (scene) {
+  sceneManager.activeInstances.forEach((instance, index) => {
+    if (instance) {
       if (index === newIndex) {
-        scene.show();
+        instance.show();
       } else {
-        scene.hide();
+        instance.hide();
       }
     }
   });
+  sceneManager.setCurrentSlot(newIndex);
 
-  renderer.setClearColor(new THREE.Color(params.visual.backgroundColor), params.visual.backgroundColor === 'transparent' ? 0 : 1);
+  renderer.setClearColor(new THREE.Color(params.visual.backgroundColor));
   sceneManager.updateForegroundColor(new THREE.Color(params.visual.foregroundColor));
   worker.postMessage({ type: 'update-fps', payload: { fps: params.system.backgroundFps } });
 
