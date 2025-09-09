@@ -80,7 +80,7 @@ export class MyNewScene {
 4.  `update`メソッドの最後に、プロパティ値を一定の割合で減衰させます。これにより、エフェクトが数フレームかけて自然に消えるようになります。
 
 ```javascript
-// 例: WavyLines.js での実装パターン
+// 例: WavyLinesv2.js での実装パターン
 
 class MyScene {
   constructor(...) {
