@@ -68,8 +68,10 @@ export class ProjectedOrbsScene {
     orbGeometry.setAttribute('instanceColor', this.orbs1.instanceColor);
     this.sceneGroup.add(this.orbs1);
     
-    this.orbs2 = new THREE.InstancedMesh(orbGeometry, this.orbMaterial, this.ORB_COUNT_PER_LAYER);
+    const orbGeometry2 = orbGeometry.clone();
+    this.orbs2 = new THREE.InstancedMesh(orbGeometry2, this.orbMaterial, this.ORB_COUNT_PER_LAYER);
     this.orbs2.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(this.ORB_COUNT_PER_LAYER * 3), 3);
+    orbGeometry2.setAttribute('instanceColor', this.orbs2.instanceColor);
     this.sceneGroup.add(this.orbs2);
 
     // エミッターをレイヤーごとに独立した初期位置と明るさで生成
@@ -92,7 +94,7 @@ export class ProjectedOrbsScene {
   }
 
   // --- 修正点: emitters引数を追加 ---
-  updateOrbsLayer(orbs, emitters, rotationSpeed, audioData, time, layerScale) {
+  updateOrbsLayer(orbs, emitters, rotationSpeed, audioData, time, layerScale, layerBrightness) {
     const { bass, treble } = audioData;
     const baseScale = layerScale * (1 + map(bass, 0, 1, 0, 1.5) + this.bassAttackEffect);
     const baseColor = new THREE.Color(this.params.visual.foregroundColor);
@@ -121,7 +123,7 @@ export class ProjectedOrbsScene {
         // 高音域(treble)を2乗して弱い入力への反応を抑え、強い入力にシャープに反応させる
         const processedTreble = Math.pow(treble, 2);
         // 増幅した高音域を、きらめきの明るさとして使用
-        const trebleBrightness = map(processedTreble, 0, 1, 0, 5.0);
+        const trebleBrightness = map(processedTreble, 0, 1, 0, 2.0);
         // 基本の明るさに、高音域のきらめきとランダム性を加算
         const dynamicBrightness = emitter.baseBrightness + trebleBrightness * Math.random();
         const finalBrightness = THREE.MathUtils.clamp(dynamicBrightness, 0.05, 3.0);
@@ -142,13 +144,14 @@ export class ProjectedOrbsScene {
         const trebleAppliedColor = baseColor.clone().lerp(highlightColor, trebleColorMix);
 
         // 最終的な色を計算 (trebleで変化した色に、明るさとまたたきを適用)
-        const color = trebleAppliedColor.multiplyScalar(finalBrightness * flickerMultiplier);
+        const color = trebleAppliedColor.multiplyScalar(finalBrightness * flickerMultiplier * layerBrightness);
         orbs.setColorAt(i, color);
 
       } else {
         this.dummy.scale.set(0, 0, 0);
         this.dummy.updateMatrix();
         orbs.setMatrixAt(i, this.dummy.matrix);
+        orbs.setColorAt(i, new THREE.Color(0x000000));
       }
     }
     orbs.instanceMatrix.needsUpdate = true;
@@ -167,8 +170,12 @@ export class ProjectedOrbsScene {
     const foregroundScale = 1.2;
     const backgroundScale = 1.0;
 
-    this.updateOrbsLayer(this.orbs1, this.emitters1, rotationSpeed1, audioData, time, foregroundScale);
-    this.updateOrbsLayer(this.orbs2, this.emitters2, rotationSpeed2, audioData, time, backgroundScale);
+    // ★修正: レイヤーごとの明るさ係数を定義
+    const foregroundBrightness = 1.0; // 前景はそのまま
+    const backgroundBrightness = 0.9; // 背景は40%の明るさに
+
+    this.updateOrbsLayer(this.orbs1, this.emitters1, rotationSpeed1, audioData, time, foregroundScale, foregroundBrightness);
+    this.updateOrbsLayer(this.orbs2, this.emitters2, rotationSpeed2, audioData, time, backgroundScale, backgroundBrightness);
 
     this.bassAttackEffect *= 0.90;
   }
