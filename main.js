@@ -68,6 +68,8 @@ const sceneManager = {
       'Lunar Phases': { path: './scenes/LunarPhases.js', className: 'LunarPhasesScene' },
       'Elevator Shaft': { path: './scenes/ElevatorShaft.js', className: 'ElevatorShaftScene' },
       'ASCII Dance': { path: './scenes/ASCIIDance.js', className: 'ASCIIDanceScene' },
+      'Projected Orbs': { path: './scenes/ProjectedOrbs.js', className: 'ProjectedOrbsScene' },
+      'Noise Smoke': { path: './scenes/NoiseSmoke.js', className: 'NoiseSmokeScene' },
       'Audio Graph': { path: './scenes/AudioGraph.js', className: 'AudioGraphScene' },
       'Empty': null
     };

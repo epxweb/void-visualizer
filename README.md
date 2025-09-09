@@ -1,4 +1,4 @@
-# Void - Audio Visualizer v.1.4.1
+# Void - Audio Visualizer v.1.4.2
 
 リアルタイム音声入力に反応する、DJのためのミニマルな簡易VJ Webアプリです。  
 ブラウザで開いて、DJ時にOBSのウィンドウキャプチャのソースとして利用することを想定しています。  
@@ -36,9 +36,9 @@
 -   ダブルタップでUI非表示のON/OFF。
 -   左右スワイプで再生スロットの切り替え。
 
-## 🎭 デフォルトシーン (v1.4.1)
+## 🎭 デフォルトシーン (v1.4.2)
 
-現在、以下の13個のシーンが実装されています。
+現在、以下の15個のシーンが実装されています。
 
 ### Wavy Lines
 -   **概要**: 画面を横切る複数の波打つ線で構成されます。
@@ -112,11 +112,23 @@
 - **中域 (Mid)**: 文字の雲がうごめく速度が変化する。
 - **高域 (Treble)**: 文字がグリッチのようにランダムな記号へ高速に入れ替わる。
 
+### Projected Orbs
+-   **概要**: 壁面に投影されたミラーボールの光の反射を表現したシーン。前景・背景の2層のオーブ（光の玉）が、それぞれ異なる速度と明るさで動き回り、奥行きのある空間を演出します。
+-   **低域 (Bass)**: ビートのアタックに合わせ、全てのオーブが瞬間的に拡大します。
+-   **中域 (Mid)**: オーブが壁面を移動する速度が変化します。
+-   **高域 (Treble)**: オーブが白くきらめくように発光します。
+
+### Noise Smoke
+- **概要**: シェーダーを用いて生成される、ノイズで構成された煙のような不定形なビジュアル。
+- **低域 (Bass)**: 煙全体の密度や広がりが変化し、アタックを検知すると閃光を放つ。
+- **中域 (Mid)**: 煙が渦を巻く速度が変化する。
+- **高域 (Treble)**: 煙を構成するノイズの粒子感を変化させる。
+
 ### Audio Graph
-- **概要**: オーディオ解析データ（`bass`, `mid`, `treble`とそれぞれのアタック値）を、システムパフォーマンスモニターのような6つのリアルタイムライングラフとして可視化します。
-- **低域 (Bass)**: 左下のグラフに`bass`のエネルギー量が、右下のグラフに`bassAttack`の値がリアルタイムで描画されます。
-- **中域 (Mid)**: 左中央のグラフに`mid`のエネルギー量が、右中央のグラフに`midAttack`の値がリアルタイムで描画されます。
-- **高域 (Treble)**: 左上のグラフに`treble`のエネルギー量が、右上のグラフに`trebleAttack`の値がリアルタイムで描画されます。
+-   **概要**: オーディオ解析データ（`bass`, `mid`, `treble`とそれぞれのアタック値）を、システムパフォーマンスモニターのような6つのリアルタイムライングラフとして可視化します。
+-   **低域 (Bass)**: 左下のグラフに`bass`のエネルギー量が、右下のグラフに`bassAttack`の値がリアルタイムで描画されます。
+-   **中域 (Mid)**: 左中央のグラフに`mid`のエネルギー量が、右中央のグラフに`midAttack`の値がリアルタイムで描画されます。
+-   **高域 (Treble)**: 左上のグラフに`treble`のエネルギー量が、右上のグラフに`trebleAttack`の値がリアルタイムで描画されます。
 
 ## 📏 シーン開発ガイド
 
@@ -143,7 +155,7 @@ This project utilizes third-party libraries under the following licenses:
 
 ---
 
-# Void - Audio Visualizer v.1.4.1
+# Void - Audio Visualizer v.1.4.2
 
 A minimal VJ web app for DJs that reacts to real-time audio input.  
 It is designed to be opened in a browser and used as a window capture source in OBS during a DJ set.  
@@ -181,9 +193,9 @@ Due to the nature of audio input, a loopback function on your audio interface ma
 -   Double Tap to hide UI.
 -   Horizontal swipe to change between slots.
 
-## 🎭 Default Scenes (v1.4.1)
+## 🎭 Default Scenes (v1.4.2)
 
-The following 13 scenes are currently implemented.
+The following 15 scenes are currently implemented.
 
 ### Wavy Lines
 -   **Overview**: Composed of multiple wavy lines crossing the screen.
@@ -256,6 +268,18 @@ The following 13 scenes are currently implemented.
 - **Bass**: Affects the overall brightness of the characters, causing them to flash like a strobe with the beat.
 - **Mid**: Controls the speed of the cloud-like movement of the characters.
 - **Treble**: Triggers a glitch effect, causing characters to rapidly change to random symbols.
+
+### Projected Orbs
+-   **Overview**: A scene that expresses the reflection of light from a disco ball projected onto a wall. It creates a sense of depth with two layers of orbs (balls of light), one in the foreground and one in the background, moving at different speeds and brightnesses.
+-   **Bass**: All orbs instantly expand with each beat's attack.
+-   **Mid**: The speed at which the orbs move across the wall changes.
+-   **Treble**: The orbs emit a bright, sparkling white light.
+
+### Noise Smoke
+- **Overview**: A formless, smoke-like visual composed of noise generated using shaders.
+- **Bass**: Changes the overall density and spread of the smoke, and emits a flash upon detecting an attack.
+- **Mid**: Changes the speed at which the smoke swirls.
+- **Treble**: Changes the graininess of the noise that constitutes the smoke.
 
 ### Audio Graph
 - **Overview**: Visualizes the raw audio analysis data (`bass`, `mid`, `treble`, and their respective attack values) as six real-time line graphs, resembling a system performance monitor.
