@@ -96,9 +96,13 @@ export class NoiseSmokeScene {
           vec2 st = (vUv - 0.5) * vec2(u_resolution.x / u_resolution.y, 1.0);
           st *= 3.0;
 
+          // カメラワーク風の移動を追加
+          st.x += u_time * 0.08; // 横方向にゆっくり移動
+          st.y += u_time * 0.03; // 縦方向にさらにゆっくり移動
+
           vec2 flow_direction = vec2(cos(u_time * 0.03), sin(u_time * 0.03)); // ゆっくり回転する方向ベクトル
           float flow_noise = fbm(st * 0.1 + flow_direction); // 非常に低周波（スケールが小さい）のノイズ
-          st += flow_noise * 1.5; // 計算した風で座標全体を歪ませる
+          st += flow_noise * 2.2; // 計算した風で座標全体を歪ませる
 
           float time_factor = u_time * (0.3 + u_mid * 0.5);
           float bass_factor = 1.0 + u_bass * 2.0;
@@ -117,10 +121,10 @@ export class NoiseSmokeScene {
           float f = fbm((st + r * bass_factor) * treble_factor);
           
           // 煙を増やす:数値を両方とも小さく／煙を減らす:両方とも大きく／煙の輪郭をシャープに:数値の間隔を狭く／煙の輪郭をぼんやり:数値の間隔を広く
-          float smoke_color = smoothstep(0.2, 0.55, f);
+          float smoke_color = smoothstep(0.2, 0.7, f);
           smoke_color += u_treble_attack * (random(st) - 0.5) * 0.3;
 
-          float final_alpha = smoke_color * (0.3 + u_bass * 0.3) + u_bass_attack * 0.5;
+          float final_alpha = smoke_color * (0.3 + u_bass * 0.3) + u_bass_attack * 0.25;
           
           gl_FragColor = vec4(u_color * final_alpha, final_alpha);
         }
@@ -157,8 +161,8 @@ export class NoiseSmokeScene {
         this.shaderMaterial.uniforms.u_resolution.value.set(window.innerWidth, window.innerHeight);
 
         // エフェクト値を時間経過で減衰させる（減衰率を調整）
-        this.bassAttackEffect *= 0.95;
-        this.trebleAttackEffect *= 0.92;
+        this.bassAttackEffect *= 0.99;
+        this.trebleAttackEffect *= 0.98;
     }
 
     /**

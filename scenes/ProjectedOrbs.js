@@ -40,16 +40,19 @@ export class ProjectedOrbsScene {
     // 注視点を少し下げて、カメラがわずかに下を向くように調整
     this.camera.lookAt(0, -5, 0);
 
-    const wallGeometry = new THREE.PlaneGeometry(this.WALL_SIZE, this.WALL_SIZE);
+    // 壁の高さを2倍にし、下方向に拡張して空白エリアをなくす
+    const wallGeometry = new THREE.PlaneGeometry(this.WALL_SIZE, this.WALL_SIZE * 2);
     const wallMaterial = new THREE.MeshBasicMaterial({ visible: false });
 
     const backWall = new THREE.Mesh(wallGeometry, wallMaterial);
     backWall.position.z = -this.WALL_SIZE / 2;
+    backWall.position.y = -this.WALL_SIZE / 2; // 壁を下にずらす
     this.walls.push(backWall);
     this.sceneGroup.add(backWall);
 
     const leftWall = new THREE.Mesh(wallGeometry.clone(), wallMaterial.clone());
     leftWall.position.x = -this.WALL_SIZE / 2;
+    leftWall.position.y = -this.WALL_SIZE / 2; // 壁を下にずらす
     leftWall.rotation.y = Math.PI / 2;
     this.walls.push(leftWall);
     this.sceneGroup.add(leftWall);
@@ -120,8 +123,7 @@ export class ProjectedOrbsScene {
         this.dummy.updateMatrix();
         orbs.setMatrixAt(i, this.dummy.matrix);
         
-        // 高音域(treble)を2乗して弱い入力への反応を抑え、強い入力にシャープに反応させる
-        const processedTreble = Math.pow(treble, 2);
+        const processedTreble = treble;
         // 増幅した高音域を、きらめきの明るさとして使用
         const trebleBrightness = map(processedTreble, 0, 1, 0, 2.0);
         // 基本の明るさに、高音域のきらめきとランダム性を加算
