@@ -20,6 +20,7 @@ export class WireframeMirrorballScene {
     this.mirrorballWireframe = null;
     this.rays = [];
     this.MAX_RAYS = 50;
+    this.raysGroup = new THREE.Group();
 
     this.init();
   }
@@ -85,10 +86,10 @@ export class WireframeMirrorballScene {
         ray.quaternion.copy(quaternion);
 
         this.rays.push(ray);
-        this.mirrorballGroup.add(ray);
+        this.raysGroup.add(ray);
     }
 
-
+    this.mirrorballGroup.add(this.raysGroup);
     this.threeScene.add(this.mirrorballGroup);
   }
 
@@ -103,6 +104,9 @@ export class WireframeMirrorballScene {
     this.mirrorball.rotation.x += map(mid, 0, 1, 0, 0.01);
     this.mirrorball.rotation.y += map(mid, 0, 1, 0.005, 0.02);
     this.mirrorballWireframe.rotation.copy(this.mirrorball.rotation);
+
+    // 放射状の直線グループをミラーボールの回転と同期させる
+    this.raysGroup.rotation.copy(this.mirrorball.rotation);
 
     // --- パネルの発光処理 ---
     const attack = Math.max(bassAttack, trebleAttack);
