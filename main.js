@@ -69,7 +69,7 @@ const sceneManager = {
       'Elevator Shaft': { path: './scenes/ElevatorShaft.js', className: 'ElevatorShaftScene' },
       'ASCII Dance': { path: './scenes/ASCIIDance.js', className: 'ASCIIDanceScene' },
       'Projected Orbs': { path: './scenes/ProjectedOrbs.js', className: 'ProjectedOrbsScene' },
-      'Noise Smoke': { path: './scenes/NoiseSmoke.js', className: 'NoiseSmokeScene' },
+      'Reactive Smoke': { path: './scenes/ReactiveSmoke.js', className: 'ReactiveSmokeScene' },
       'Audio Graph': { path: './scenes/AudioGraph.js', className: 'AudioGraphScene' },
       'Empty': null
     };

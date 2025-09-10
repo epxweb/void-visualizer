@@ -17,6 +17,7 @@ export class WireframeMirrorballScene {
 
     this.mirrorballGroup = new THREE.Group();
     this.mirrorball = null;
+    this.mirrorballWireframe = null;
     this.rays = [];
     this.MAX_RAYS = 50;
 
@@ -31,14 +32,35 @@ export class WireframeMirrorballScene {
 
     // ミラーボール本体の作成
     const geometry = new THREE.IcosahedronGeometry(2, 1);
-    const wireframe = new THREE.WireframeGeometry(geometry);
-    const material = new THREE.LineBasicMaterial({
-      color: new THREE.Color(this.params.visual.foregroundColor),
+    const materials = [];
+    const faceCount = geometry.attributes.position.count / 3;
+    this.panelStates = [];
+
+    for (let i = 0; i < faceCount; i++) {
+      const material = new THREE.MeshStandardMaterial({
+        color: new THREE.Color(this.params.visual.foregroundColor),
+        emissive: new THREE.Color(0x000000),
+        metalness: 0.8,
+        roughness: 0.2,
+      });
+      materials.push(material);
+      geometry.addGroup(i * 3, 3, i);
+      this.panelStates.push({ intensity: 0 });
+    }
+
+    this.mirrorball = new THREE.Mesh(geometry, materials);
+    this.mirrorballGroup.add(this.mirrorball);
+
+    // ワイヤーフレームの追加
+    const wireframeGeometry = new THREE.WireframeGeometry(geometry);
+    const wireframeMaterial = new THREE.LineBasicMaterial({
+      color: new THREE.Color(this.params.visual.foregroundColor).multiplyScalar(1.2),
       transparent: true,
       opacity: 0.8
     });
-    this.mirrorball = new THREE.LineSegments(wireframe, material);
-    this.mirrorballGroup.add(this.mirrorball);
+    this.mirrorballWireframe = new THREE.LineSegments(wireframeGeometry, wireframeMaterial);
+    this.mirrorballWireframe.scale.set(1.001, 1.001, 1.001); // Z-fighting対策
+    this.mirrorballGroup.add(this.mirrorballWireframe);
 
     // 放射状の直線の作成
     const rayMaterial = new THREE.LineBasicMaterial({
@@ -75,19 +97,42 @@ export class WireframeMirrorballScene {
    * @param {object} audioData - 解析されたオーディオデータ { bass, mid, treble }。
    */
   update(audioData) {
-    const { bass, mid, treble } = audioData;
+    const { bass, mid, treble, bassAttack, trebleAttack } = audioData;
 
     // 中域 (Mid): ミラーボール本体の回転速度が変化
     this.mirrorball.rotation.x += map(mid, 0, 1, 0, 0.01);
     this.mirrorball.rotation.y += map(mid, 0, 1, 0.005, 0.02);
+    this.mirrorballWireframe.rotation.copy(this.mirrorball.rotation);
+
+    // --- パネルの発光処理 ---
+    const attack = Math.max(bassAttack, trebleAttack);
+    if (attack > 0.15) {
+      const flashCount = Math.floor(this.panelStates.length * 0.3);
+      for (let i = 0; i < flashCount; i++) {
+        const randomIndex = Math.floor(Math.random() * this.panelStates.length);
+        this.panelStates[randomIndex].intensity = 1.2; // 少し強めに光らせる
+      }
+    }
+
+    const baseColor = new THREE.Color(this.params.visual.foregroundColor);
+    this.panelStates.forEach((state, index) => {
+      if (state.intensity > 0) {
+        const emissiveColor = baseColor.clone().multiplyScalar(state.intensity);
+        this.mirrorball.material[index].emissive.set(emissiveColor);
+        
+        state.intensity *= 0.92; // 減衰
+        if (state.intensity < 0.01) {
+          state.intensity = 0;
+          this.mirrorball.material[index].emissive.set(0x000000);
+        }
+      }
+    });
+    // --- ここまでパネルの発光処理 ---
 
     this.rays.forEach(ray => {
-        // ★ここから修正点★
         // 低域 (Bass): 放射される直線が一斉に長く、そして明るくなる
-        // 最大値を50に増やして、画面外まで伸びるように調整
         const length = map(bass, 0, 1, 5, 50);
         ray.scale.y = length;
-        // ★ここまで修正点★
 
         // 高域 (Treble): 放射される直線の本数や角度がランダムに変化
         // ここでは表示/非表示を切り替える
@@ -106,7 +151,10 @@ export class WireframeMirrorballScene {
    * UIから前景色が変更された際に呼び出されるメソッド。
    */
   updateForegroundColor(color) {
-    this.mirrorball.material.color.set(color);
+    this.mirrorball.material.forEach(material => material.color.set(color));
+    if (this.mirrorballWireframe) {
+      this.mirrorballWireframe.material.color.set(new THREE.Color(color).multiplyScalar(1.2));
+    }
     this.rays.forEach(ray => ray.material.color.set(color));
   }
 
@@ -122,12 +170,22 @@ export class WireframeMirrorballScene {
    * このシーンに関連するすべてのThree.jsオブジェクトを解放する。
    */
   dispose() {
+    // メッシュの解放
     this.mirrorball.geometry.dispose();
-    this.mirrorball.material.dispose();
+    this.mirrorball.material.forEach(material => material.dispose());
+    
+    // ワイヤーフレームの解放
+    if (this.mirrorballWireframe) {
+      this.mirrorballWireframe.geometry.dispose();
+      this.mirrorballWireframe.material.dispose();
+    }
+
+    // 光線の解放
     this.rays.forEach(ray => {
         ray.geometry.dispose();
         ray.material.dispose();
     });
+
     this.threeScene.remove(this.mirrorballGroup);
   }
 }

@@ -118,7 +118,7 @@
 -   **中域 (Mid)**: オーブが壁面を移動する速度が変化します。
 -   **高域 (Treble)**: オーブが白くきらめくように発光します。
 
-### Noise Smoke
+### Reactive Smoke
 - **概要**: シェーダーを用いて生成される、ノイズで構成された煙のような不定形なビジュアル。
 - **低域 (Bass)**: 煙全体の密度や広がりが変化し、アタックを検知すると閃光を放つ。
 - **中域 (Mid)**: 煙が渦を巻く速度が変化する。
@@ -275,7 +275,7 @@ The following 15 scenes are currently implemented.
 -   **Mid**: The speed at which the orbs move across the wall changes.
 -   **Treble**: The orbs emit a bright, sparkling white light.
 
-### Noise Smoke
+### Reactive Smoke
 - **Overview**: A formless, smoke-like visual composed of noise generated using shaders.
 - **Bass**: Changes the overall density and spread of the smoke, and emits a flash upon detecting an attack.
 - **Mid**: Changes the speed at which the smoke swirls.

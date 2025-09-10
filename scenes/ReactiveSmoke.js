@@ -2,10 +2,10 @@ import * as THREE from 'https://cdn.skypack.dev/three@0.128.0/build/three.module
 import { map } from '../core/utils.js';
 
 /**
- * NoiseSmokeSceneクラス
+ * ReactiveSmokeSceneクラス
  * シェーダーを用いて生成される、ノイズで構成された煙のような不定形なビジュアル。
  */
-export class NoiseSmokeScene {
+export class ReactiveSmokeScene {
     /**
      * @param {THREE.Scene} scene - レンダリング対象のメインシーン。
      * @param {object} params - Tweakpaneで操作するパラメータオブジェクト。
