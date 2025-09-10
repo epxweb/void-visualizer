@@ -10,10 +10,13 @@ export class WireframeMirrorballScene {
   /**
    * @param {THREE.Scene} scene - レンダリング対象のメインシーン。
    * @param {object} params - Tweakpaneで操作するパラメータオブジェクト。
+   * @param {THREE.Camera} camera - レンダリングに使用するカメラ。
    */
-  constructor(scene, params) {
+  constructor(scene, params, camera) {
     this.threeScene = scene;
     this.params = params;
+    this.camera = camera;
+    this.originalFar = camera.far;
 
     this.mirrorballGroup = new THREE.Group();
     this.mirrorball = null;
@@ -164,10 +167,14 @@ export class WireframeMirrorballScene {
 
   show() {
     this.mirrorballGroup.visible = true;
+    this.camera.far = 1000;
+    this.camera.updateProjectionMatrix();
   }
 
   hide() {
     this.mirrorballGroup.visible = false;
+    this.camera.far = this.originalFar;
+    this.camera.updateProjectionMatrix();
   }
 
   /**
@@ -191,5 +198,9 @@ export class WireframeMirrorballScene {
     });
 
     this.threeScene.remove(this.mirrorballGroup);
+
+    // カメラの設定を元に戻す
+    this.camera.far = this.originalFar;
+    this.camera.updateProjectionMatrix();
   }
 }
