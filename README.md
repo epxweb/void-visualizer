@@ -36,9 +36,9 @@
 -   ダブルタップでUI非表示のON/OFF。
 -   左右スワイプで再生スロットの切り替え。
 
-## 🎭 デフォルトシーン (v1.4.2)
+## 🎭 デフォルトシーン (v1.4.3)
 
-現在、以下の15個のシーンが実装されています。
+現在、以下の16個のシーンが実装されています。
 
 ### Wavy Lines
 -   **概要**: 画面を横切る複数の波打つ線で構成されます。
@@ -124,6 +124,12 @@
 - **中域 (Mid)**: 煙が渦を巻く速度が変化する。
 - **高域 (Treble)**: 煙を構成するノイズの粒子感を変化させる。
 
+### Digital Rain
+-   **概要**: グリッド状に配置された多数の7セグメントディスプレイが、デジタルな雨のように明滅しながら数字を変化させる。
+-   **低域 (Bass)**: 点灯しているセグメント全体の明るさが変化し、強いアタックを検知すると一部の数字がランダムに閃光を放つ。
+-   **中域 (Mid)**: 一部の数字がスロットマシンのように、一瞬だけ高速でランダムに変化する。
+-   **高域 (Treble)**: 一部の数字がグリッチのように、一瞬だけ完全に消灯する。
+
 ### Audio Graph
 -   **概要**: オーディオ解析データ（`bass`, `mid`, `treble`とそれぞれのアタック値）を、システムパフォーマンスモニターのような6つのリアルタイムライングラフとして可視化します。
 -   **低域 (Bass)**: 左下のグラフに`bass`のエネルギー量が、右下のグラフに`bassAttack`の値がリアルタイムで描画されます。
@@ -193,9 +199,9 @@ Due to the nature of audio input, a loopback function on your audio interface ma
 -   Double Tap to hide UI.
 -   Horizontal swipe to change between slots.
 
-## 🎭 Default Scenes (v1.4.2)
+## 🎭 Default Scenes (v1.4.3)
 
-The following 15 scenes are currently implemented.
+The following 16 scenes are currently implemented.
 
 ### Wavy Lines
 -   **Overview**: Composed of multiple wavy lines crossing the screen.
@@ -280,6 +286,12 @@ The following 15 scenes are currently implemented.
 - **Bass**: Changes the overall density and spread of the smoke, and emits a flash upon detecting an attack.
 - **Mid**: Changes the speed at which the smoke swirls.
 - **Treble**: Changes the graininess of the noise that constitutes the smoke.
+
+### Digital Rain
+-   **Overview**: A grid of numerous 7-segment displays flickers and changes numbers, reminiscent of digital rain.
+-   **Bass**: Affects the overall brightness of lit segments. A strong attack triggers a random subset of digits to flash brightly.
+-   **Mid**: Causes a random selection of digits to momentarily change numbers at high speed, like a slot machine.
+-   **Treble**: Causes a random selection of digits to momentarily turn off completely, creating a glitch-like blackout effect.
 
 ### Audio Graph
 - **Overview**: Visualizes the raw audio analysis data (`bass`, `mid`, `treble`, and their respective attack values) as six real-time line graphs, resembling a system performance monitor.
