@@ -60,7 +60,7 @@ export class ASCIIDanceScene {
       }
 
       void main() {
-          float zoom = 1.0 + sin(time * 0.2) * 0.1; // 非常にゆっくりした周期で0.95から1.05の間を変動
+          float zoom = 0.5 + sin(time * 0.1) * 0.1; // ゆっくりした伸縮と拡大
           float aspectRatio = resolution.x / resolution.y;
           vec2 p = vUv * 2.0 - 1.0;
           p *= zoom;

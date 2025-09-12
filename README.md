@@ -4,7 +4,10 @@
 ブラウザで開いて、DJ時にOBSのウィンドウキャプチャのソースとして利用することを想定しています。  
 音声入力の仕組み上、オーディオインターフェースにループバックなどの機能が必要なことがあります。
 
-## 🎛️ 公式デモ
+## 🌐 公式サイト
+[https://epxstudio.com/void/](https://epxstudio.com/void/)
+
+## 🎛️ デモ
 [https://epxweb.github.io/void-visualizer/](https://epxweb.github.io/void-visualizer/)
 
 ## ✨ 特徴
@@ -38,7 +41,7 @@
 
 ## 🎭 デフォルトシーン (v1.4.3)
 
-現在、以下の16個のシーンが実装されています。
+現在、以下の17個のシーンが実装されています。
 
 ### Wavy Lines
 -   **概要**: 画面を横切る複数の波打つ線で構成されます。
@@ -124,11 +127,17 @@
 - **中域 (Mid)**: 煙が渦を巻く速度が変化する。
 - **高域 (Treble)**: 煙を構成するノイズの粒子感を変化させる。
 
-### Digital Rain
+### Digital Curtain
 -   **概要**: グリッド状に配置された多数の7セグメントディスプレイが、デジタルな雨のように明滅しながら数字を変化させる。
 -   **低域 (Bass)**: 点灯しているセグメント全体の明るさが変化し、強いアタックを検知すると一部の数字がランダムに閃光を放つ。
 -   **中域 (Mid)**: 一部の数字がスロットマシンのように、一瞬だけ高速でランダムに変化する。
 -   **高域 (Treble)**: 一部の数字がグリッチのように、一瞬だけ完全に消灯する。
+
+### Heavy Rain
+- **概要**: 激しく地面を叩く雨を真上から描いたシーン。高音域に連動する無数の雨の軌跡と、低音域が作り出す波紋がシンクロします。
+- **低域 (Bass)**: 地面に広がる波紋の数や大きさに影響します。
+- **中域 (Mid)**: 雨が降る速度と波紋が広がる速度をコントロールします。
+- **高域 (Treble)**: 画面奥から降り注ぐ雨の軌跡の数や激しさに影響します。
 
 ### Audio Graph
 -   **概要**: オーディオ解析データ（`bass`, `mid`, `treble`とそれぞれのアタック値）を、システムパフォーマンスモニターのような6つのリアルタイムライングラフとして可視化します。
@@ -167,7 +176,10 @@ A minimal VJ web app for DJs that reacts to real-time audio input.
 It is designed to be opened in a browser and used as a window capture source in OBS during a DJ set.  
 Due to the nature of audio input, a loopback function on your audio interface may be required.
 
-## 🎛️ DEMO
+## 🌐 Official Website
+[https://epxstudio.com/void/](https://epxstudio.com/void/)
+
+## 🎛️ Demo
 [https://epxweb.github.io/void-visualizer/](https://epxweb.github.io/void-visualizer/)
 
 ## ✨ Features
@@ -201,7 +213,7 @@ Due to the nature of audio input, a loopback function on your audio interface ma
 
 ## 🎭 Default Scenes (v1.4.3)
 
-The following 16 scenes are currently implemented.
+The following 17 scenes are currently implemented.
 
 ### Wavy Lines
 -   **Overview**: Composed of multiple wavy lines crossing the screen.
@@ -287,11 +299,17 @@ The following 16 scenes are currently implemented.
 - **Mid**: Changes the speed at which the smoke swirls.
 - **Treble**: Changes the graininess of the noise that constitutes the smoke.
 
-### Digital Rain
+### Digital Curtain
 -   **Overview**: A grid of numerous 7-segment displays flickers and changes numbers, reminiscent of digital rain.
 -   **Bass**: Affects the overall brightness of lit segments. A strong attack triggers a random subset of digits to flash brightly.
 -   **Mid**: Causes a random selection of digits to momentarily change numbers at high speed, like a slot machine.
 -   **Treble**: Causes a random selection of digits to momentarily turn off completely, creating a glitch-like blackout effect.
+
+### Heavy Rain
+- **Overview**: A scene depicting heavy rain hitting the ground from a top-down perspective. Countless streaks of rain linked to high frequencies synchronize with ripples created by the low frequencies.
+- **Bass**: Affects the number and size of the ripples spreading on the ground.
+- **Mid**: Controls the speed of the falling rain and the spreading ripples.
+- **Treble**: Affects the number and intensity of the rain streaks pouring from the back of the screen.
 
 ### Audio Graph
 - **Overview**: Visualizes the raw audio analysis data (`bass`, `mid`, `treble`, and their respective attack values) as six real-time line graphs, resembling a system performance monitor.

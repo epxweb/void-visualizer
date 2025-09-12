@@ -70,7 +70,8 @@ const sceneManager = {
       'ASCII Dance': { path: './scenes/ASCIIDance.js', className: 'ASCIIDanceScene' },
       'Projected Orbs': { path: './scenes/ProjectedOrbs.js', className: 'ProjectedOrbsScene' },
       'Reactive Smoke': { path: './scenes/ReactiveSmoke.js', className: 'ReactiveSmokeScene' },
-      'Digital Rain': { path: './scenes/DigitalRain.js', className: 'DigitalRainScene' },
+      'Digital Curtain': { path: './scenes/DigitalCurtain.js', className: 'DigitalCurtainScene' },
+      'Heavy Rain': { path: './scenes/HeavyRain.js', className: 'HeavyRainScene' },
       'Audio Graph': { path: './scenes/AudioGraph.js', className: 'AudioGraphScene' },
       'Empty': null
     };

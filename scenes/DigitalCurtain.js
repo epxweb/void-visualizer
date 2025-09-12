@@ -1,8 +1,8 @@
-// scenes/DigitalRain.js
+// scenes/DigitalCurtain.js
 import * as THREE from 'https://cdn.skypack.dev/three@0.128.0/build/three.module.js';
 import { map } from '../core/utils.js';
 
-export class DigitalRainScene {
+export class DigitalCurtainScene {
   constructor(scene, params, camera) {
     this.threeScene = scene;
     this.params = params;
@@ -136,7 +136,7 @@ export class DigitalRainScene {
       
       state.flash *= 0.9;
       if (state.darkenFactor < 1.0) {
-        state.darkenFactor += 0.1; // 少しずつ元の明るさに戻る
+        state.darkenFactor += 0.01; // 少しずつ元の明るさに戻る
       }
     }
     this.instancedSegments.instanceColor.needsUpdate = true;
