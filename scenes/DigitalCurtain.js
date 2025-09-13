@@ -103,7 +103,7 @@ export class DigitalCurtainScene {
     for (let i = 0; i < this.gridSize.x * this.gridSize.y; i++) {
       const state = this.digitStates[i];
 
-      if (state.speedMultiplier === 1.0 && Math.random() < map(mid, 0.3, 1.0, 0, 0.1)) {
+      if (state.speedMultiplier === 1.0 && Math.random() < map(mid, 0.3, 1.0, 0, 0.4)) {
         state.speedMultiplier = Math.random() * 20 + 20;
       }
 

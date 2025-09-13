@@ -26,6 +26,7 @@ export class TriTileScene {
     this.tileGroup = new THREE.Group();
     this.tiles = null;
     this.tileStates = []; // 各タイルの状態を管理 { life: number }
+    this.bassAttackEffect = 0; // アタックエフェクトの強度を保持
 
     this.init();
   }
@@ -87,11 +88,15 @@ export class TriTileScene {
 
   /**
    * シーンの更新処理。
-   * @param {object} audioData - 解析されたオーディオデータ { bass, mid, treble }。
+   * @param {object} audioData - 解析されたオーディオデータ { bass, mid, treble, bassAttack }。
    * @param {number} time - 経過時間。
    */
   update(audioData, time) {
-    const { bass, mid, treble } = audioData;
+    const { mid, treble, bassAttack } = audioData;
+
+    if (bassAttack > 0.1) {
+      this.bassAttackEffect = bassAttack * 1.5;
+    }
 
     const moveSpeed = map(mid, 0, 1, 0.01, 0.1);
     this.tileGroup.position.x = Math.sin(time * 0.1) * 10 * moveSpeed;
@@ -101,9 +106,8 @@ export class TriTileScene {
     const foregroundColor = new THREE.Color(this.params.visual.foregroundColor);
     const backgroundColor = new THREE.Color(this.params.visual.backgroundColor);
     
-    const bassPulse = map(bass, 0.6, 1.0, 0, 0.4); 
     const trebleThreshold = 0.12; 
-    const trebleMultiplier = 50;
+    const trebleMultiplier = 10;
 
     if (treble > trebleThreshold) {
       const flashCount = Math.floor(map(treble, trebleThreshold, 1.0, 1, trebleMultiplier));
@@ -123,8 +127,8 @@ export class TriTileScene {
         state.life = 0;
       }
 
-      const idleBrightness = (Math.sin(time * 0.5 + state.idle) + 1) / 2 * 0.05;
-      const totalBrightness = state.life + idleBrightness + bassPulse;
+      const idleBrightness = (Math.sin(time * 0.5 + state.idle) + 1) / 2 * 0.02;
+      const totalBrightness = state.life + idleBrightness + this.bassAttackEffect;
 
       const finalColor = backgroundColor.clone().lerp(foregroundColor, totalBrightness);
       
@@ -133,6 +137,8 @@ export class TriTileScene {
       colors.setXYZ(i * 3 + 2, finalColor.r, finalColor.g, finalColor.b);
     }
     colors.needsUpdate = true;
+
+    this.bassAttackEffect *= 0.90;
   }
   
   updateForegroundColor(color) {
