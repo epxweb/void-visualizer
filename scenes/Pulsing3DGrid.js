@@ -1,5 +1,5 @@
 // scenes/Pulsing3DGrid.js
-import * as THREE from 'https://cdn.skypack.dev/three@0.128.0/build/three.module.js';
+import * as THREE from 'three';
 import { map } from '../core/utils.js';
 
 /**

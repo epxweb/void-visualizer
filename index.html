@@ -21,7 +21,14 @@
   <link rel="manifest" href="site.webmanifest" />
 </head>
 <body>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.skypack.dev/three@0.128.0/build/three.module.js",
+        "three/": "https://cdn.skypack.dev/three@0.128.0/"
+      }
+    }
+  </script>
   <script type="module" src="main.js"></script>
 </body>
 </html>

@@ -8,13 +8,17 @@
 
 ```javascript
 // scenes/MyNewScene.js
-import * as THREE from '...';
+import * as THREE from 'three';
 import { map } from '../core/utils.js'; // 必要に応じて共通関数をインポート
 
 export class MyNewScene {
   // ...
 }
 ```
+
+**【補足】 `three.js`のインポートについて**
+
+本プロジェクトでは、`index.html`に定義された`importmap`を用いて`three.js`の依存関係を一元管理しています。そのため、新しいシーンファイルでは必ず`import * as THREE from 'three';`という記述で`three.js`をインポートしてください。これにより、`three.js`のバージョン管理が容易になり、ブラウザによるモジュールの重複読み込みも防止されます。
 
 ### 2. 必須メソッド
 
