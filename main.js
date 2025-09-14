@@ -72,6 +72,7 @@ const sceneManager = {
       'Reactive Smoke': { path: './scenes/ReactiveSmoke.js', className: 'ReactiveSmokeScene' },
       'Digital Curtain': { path: './scenes/DigitalCurtain.js', className: 'DigitalCurtainScene' },
       'Heavy Rain': { path: './scenes/HeavyRain.js', className: 'HeavyRainScene' },
+      'Starry Lake': { path: './scenes/StarryLake.js', className: 'StarryLakeScene' },
       'Audio Graph': { path: './scenes/AudioGraph.js', className: 'AudioGraphScene' },
       'Empty': null
     };

@@ -21,7 +21,6 @@ export class ProjectedOrbsScene {
     this.orbs2 = null;
     this.orbMaterial = null;
     this.raycaster = new THREE.Raycaster();
-    // --- 修正点: レイヤーごとに独立したemitters配列を用意 ---
     this.emitters1 = [];
     this.emitters2 = [];
     this.dummy = new THREE.Object3D();
@@ -37,22 +36,20 @@ export class ProjectedOrbsScene {
     this.originalCameraPos.copy(this.camera.position);
     this.originalCameraQuaternion.copy(this.camera.quaternion);
     this.camera.position.set(15, 0, 15);
-    // 注視点を少し下げて、カメラがわずかに下を向くように調整
     this.camera.lookAt(0, -5, 0);
 
-    // 壁の高さを2倍にし、下方向に拡張して空白エリアをなくす
     const wallGeometry = new THREE.PlaneGeometry(this.WALL_SIZE, this.WALL_SIZE * 2);
     const wallMaterial = new THREE.MeshBasicMaterial({ visible: false });
 
     const backWall = new THREE.Mesh(wallGeometry, wallMaterial);
     backWall.position.z = -this.WALL_SIZE / 2;
-    backWall.position.y = -this.WALL_SIZE / 2; // 壁を下にずらす
+    backWall.position.y = -this.WALL_SIZE / 2;
     this.walls.push(backWall);
     this.sceneGroup.add(backWall);
 
     const leftWall = new THREE.Mesh(wallGeometry.clone(), wallMaterial.clone());
     leftWall.position.x = -this.WALL_SIZE / 2;
-    leftWall.position.y = -this.WALL_SIZE / 2; // 壁を下にずらす
+    leftWall.position.y = -this.WALL_SIZE / 2;
     leftWall.rotation.y = Math.PI / 2;
     this.walls.push(leftWall);
     this.sceneGroup.add(leftWall);
@@ -77,15 +74,12 @@ export class ProjectedOrbsScene {
     orbGeometry2.setAttribute('instanceColor', this.orbs2.instanceColor);
     this.sceneGroup.add(this.orbs2);
 
-    // エミッターをレイヤーごとに独立した初期位置と明るさで生成
     for (let i = 0; i < this.ORB_COUNT_PER_LAYER; i++) {
-      // レイヤー1のエミッター (前景: わずかに見える程度)
       this.emitters1.push({
         phi: Math.acos(1 - 2 * Math.random()),
         theta: Math.random() * Math.PI * 2,
         baseBrightness: Math.random() * 0.15 + 0.4,
       });
-      // レイヤー2のエミッター (背景: ほとんど見えない程度)
       this.emitters2.push({
         phi: Math.acos(1 - 2 * Math.random()),
         theta: Math.random() * Math.PI * 2,
@@ -96,19 +90,24 @@ export class ProjectedOrbsScene {
     this.threeScene.add(this.sceneGroup);
   }
 
-  // --- 修正点: emitters引数を追加 ---
-  updateOrbsLayer(orbs, emitters, rotationSpeed, audioData, time, layerScale, layerBrightness) {
+  // ★ここから修正: `swayOffset`引数を追加
+  updateOrbsLayer(orbs, emitters, rotationSpeed, audioData, time, layerScale, layerBrightness, swayOffset) {
     const { bass, treble } = audioData;
     const baseScale = layerScale * (1 + map(bass, 0, 1, 0, 1.5) + this.bassAttackEffect);
     const baseColor = new THREE.Color(this.params.visual.foregroundColor);
     const emitterDirection = new THREE.Vector3();
+
+    // ★ここから修正: 光線の起点となるカメラ位置に揺れを加える
+    const rayOrigin = this.camera.position.clone();
+    rayOrigin.x += swayOffset;
+    // ★ここまで修正
 
     for (let i = 0; i < this.ORB_COUNT_PER_LAYER; i++) {
       const emitter = emitters[i];
       emitter.theta = (emitter.theta + rotationSpeed) % (Math.PI * 2);
       emitterDirection.setFromSphericalCoords(1, emitter.phi, emitter.theta);
       
-      this.raycaster.set(this.camera.position, emitterDirection);
+      this.raycaster.set(rayOrigin, emitterDirection); // ★修正: 揺れが適用された位置を起点にする
       const intersects = this.raycaster.intersectObjects(this.walls);
 
       if (intersects.length > 0) {
@@ -124,28 +123,19 @@ export class ProjectedOrbsScene {
         orbs.setMatrixAt(i, this.dummy.matrix);
         
         const processedTreble = treble;
-        // 増幅した高音域を、きらめきの明るさとして使用
         const trebleBrightness = map(processedTreble, 0, 1, 0, 2.0);
-        // 基本の明るさに、高音域のきらめきとランダム性を加算
         const dynamicBrightness = emitter.baseBrightness + trebleBrightness * Math.random();
         const finalBrightness = THREE.MathUtils.clamp(dynamicBrightness, 0.05, 3.0);
 
-        // --- またたき効果 ---
-        // 各オーブが固有のタイミングでまたたくように、インデックス `i` をオフセットに利用
-        const flickerSpeed = 50; // またたきの速さ
-        const flickerIntensity = 0.4; // またたきの強さ (0.0 -> またたかない, 1.0 -> 完全に消える)
-        // sin波を使って 0.0 ~ 1.0 の範囲で揺らぎを生成
+        const flickerSpeed = 50;
+        const flickerIntensity = 0.4;
         const flickerValue = (Math.sin(time * flickerSpeed + i) + 1) / 2;
-        // 揺らぎを適用するための係数を計算 (1.0-intensity ~ 1.0 の範囲)
         const flickerMultiplier = 1.0 - flickerIntensity + flickerValue * flickerIntensity;
 
-        // --- trebleによる色の変化 ---
-        const highlightColor = new THREE.Color(0xffffff); // 白く光る
-        // trebleが強いほど白に近づける
+        const highlightColor = new THREE.Color(0xffffff);
         const trebleColorMix = THREE.MathUtils.clamp(processedTreble * 2.0, 0, 1);
         const trebleAppliedColor = baseColor.clone().lerp(highlightColor, trebleColorMix);
 
-        // 最終的な色を計算 (trebleで変化した色に、明るさとまたたきを適用)
         const color = trebleAppliedColor.multiplyScalar(finalBrightness * flickerMultiplier * layerBrightness);
         orbs.setColorAt(i, color);
 
@@ -164,20 +154,24 @@ export class ProjectedOrbsScene {
     const { mid, bassAttack } = audioData;
     if (bassAttack > 0.1) this.bassAttackEffect = 1.0;
 
-    const rotationSpeed1 = map(mid, 0, 1, 0.001, 0.02);
-    // 背景レイヤーの速度を前景の30%に設定し、速度差を明確にする
+    const rotationSpeed1 = map(mid, 0, 1, 0.001, 0.03);
     const rotationSpeed2 = rotationSpeed1 * 0.3; 
 
-    // レイヤーごとのスケールを設定 (前景を1.2倍に)
     const foregroundScale = 1.2;
     const backgroundScale = 1.0;
 
-    // ★修正: レイヤーごとの明るさ係数を定義
-    const foregroundBrightness = 1.0; // 前景はそのまま
-    const backgroundBrightness = 0.9; // 背景は40%の明るさに
+    const foregroundBrightness = 1.0;
+    const backgroundBrightness = 0.9;
 
-    this.updateOrbsLayer(this.orbs1, this.emitters1, rotationSpeed1, audioData, time, foregroundScale, foregroundBrightness);
-    this.updateOrbsLayer(this.orbs2, this.emitters2, rotationSpeed2, audioData, time, backgroundScale, backgroundBrightness);
+    // ★ここから修正: 各レイヤーの揺れを計算
+    // 前景レイヤー：周期が速く、揺れの幅が大きい
+    const sway1 = Math.sin(time * 0.2) * 5.0; 
+    // 背景レイヤー：周期が遅く、揺れの幅が小さい
+    const sway2 = Math.sin(time * 0.1) * 20.0;
+    // ★ここまで修正
+
+    this.updateOrbsLayer(this.orbs1, this.emitters1, rotationSpeed1, audioData, time, foregroundScale, foregroundBrightness, sway1);
+    this.updateOrbsLayer(this.orbs2, this.emitters2, rotationSpeed2, audioData, time, backgroundScale, backgroundBrightness, sway2);
 
     this.bassAttackEffect *= 0.90;
   }
@@ -189,7 +183,6 @@ export class ProjectedOrbsScene {
   show() {
     this.sceneGroup.visible = true;
     this.camera.position.set(15, 0, 15);
-    // 注視点を少し下げて、カメラがわずかに下を向くように調整
     this.camera.lookAt(0, -5, 0);
   }
 
@@ -212,7 +205,6 @@ export class ProjectedOrbsScene {
 
     this.threeScene.remove(this.sceneGroup);
 
-    // カメラの位置と向きを元の状態に戻す
     this.camera.position.copy(this.originalCameraPos);
     this.camera.quaternion.copy(this.originalCameraQuaternion);
   }
