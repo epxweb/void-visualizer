@@ -154,7 +154,7 @@
 ## 📏 シーン開発ガイド
 
 新規にビジュアルシーンを開発する場合は、下記のシーン開発ガイドを参照してください。  
-[./scene_development_guide.md](./scene_development_guide.md)
+[./docs/scene_development_guide.md](./docs/scene_development_guide.md)
 
 ## 💻 技術スタック
 
@@ -332,7 +332,7 @@ The following 18 scenes are currently implemented.
 ## 📏 Scene Development Guide (JP)
 
 When developing new visual scenes, please refer to the scene development guide below (Currently only in Japanese).  
-[./scene_development_guide.md](./scene_development_guide.md)
+[./docs/scene_development_guide.md](./docs/scene_development_guide.md)
 
 ## 💻 Tech Stack
 
