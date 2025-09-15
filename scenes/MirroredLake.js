@@ -18,10 +18,11 @@ export class MirroredLakeScene {
     this.mountain = null;
     this.reflectedMountain = null;
 
+    this.STAR_Y_RANGE = 100;
+
     this.init();
   }
 
-  // ▼▼▼ このメソッドを追記 ▼▼▼
   createStarTexture() {
     const canvas = document.createElement('canvas');
     canvas.width = 32;
@@ -35,11 +36,10 @@ export class MirroredLakeScene {
     context.fillRect(0, 0, 32, 32);
     return new THREE.CanvasTexture(canvas);
   }
-  // ▲▲▲ ここまで追記 ▲▲▲
 
   init() {
-    // 1. Background (Sky & Lake) - 3D空間に配置する方法に変更
-    const bgGeometry = new THREE.PlaneGeometry(500, 200); // 十分な大きさの平面
+    // 1. Background (Sky & Lake)
+    const bgGeometry = new THREE.PlaneGeometry(500, 200);
     const bgMaterial = new THREE.ShaderMaterial({
         uniforms: {},
         vertexShader: `
@@ -54,14 +54,14 @@ export class MirroredLakeScene {
             varying vec3 vWorldPosition;
             void main() {
                 float horizon = 0.0;
-                float skyHeight = 50.0; // グラデーションがかかる空の高さの目安
+                float skyHeight = 50.0;
                 vec3 baseColor = vec3(0.0, 0.0, 0.0);
                 vec3 finalColor;
 
-                if (vWorldPosition.y > horizon) { // 空
+                if (vWorldPosition.y > horizon) { // Sky
                     float intensity = pow(clamp(vWorldPosition.y / skyHeight, 0.0, 1.0), 0.4) * 0.2;
                     finalColor = baseColor + intensity;
-                } else { // 湖
+                } else { // Lake
                     float intensity = pow(clamp(abs(vWorldPosition.y) / skyHeight, 0.0, 1.0), 0.4) * 0.08;
                     finalColor = baseColor + intensity;
                 }
@@ -70,35 +70,29 @@ export class MirroredLakeScene {
         `,
     });
     this.background = new THREE.Mesh(bgGeometry, bgMaterial);
-    this.background.position.z = -60; // 星や山より奥に配置
-    this.background.renderOrder = -1; // 必ず最初に描画
+    this.background.position.z = -60;
+    this.background.renderOrder = -1;
     this.sceneGroup.add(this.background);
 
     // 2. Stars & Reflection
     const starGeometry = new THREE.BufferGeometry();
     const starPositions = [];
-    const reflectedStarPositions = [];
-    const starColors = []; // 色情報を格納する配列を追加
+    const starColors = [];
     
     for (let i = 0; i < this.NUM_STARS; i++) {
         const x = (Math.random() - 0.5) * 400;
-        const y = Math.random() * 100; 
+        // ▼▼▼ Y座標を 0 から STAR_Y_RANGE の間に限定 ▼▼▼
+        const y = Math.random() * this.STAR_Y_RANGE;
         const z = (Math.random() - 0.5) * 50 - 20;
 
         starPositions.push(x, y, z);
-        reflectedStarPositions.push(x, -y, z);
-
-        // ランダムな明るさ（0.5〜1.0）を生成し、色として追加
+        
         const brightness = Math.random() * 0.5 + 0.5;
         starColors.push(brightness, brightness, brightness);
     }
 
     starGeometry.setAttribute('position', new THREE.Float32BufferAttribute(starPositions, 3));
-    starGeometry.setAttribute('color', new THREE.Float32BufferAttribute(starColors, 3)); // color属性を設定
-
-    const reflectedStarGeometry = new THREE.BufferGeometry();
-    reflectedStarGeometry.setAttribute('position', new THREE.Float32BufferAttribute(reflectedStarPositions, 3));
-    reflectedStarGeometry.setAttribute('color', new THREE.Float32BufferAttribute(starColors, 3)); // 反射側にも同じcolor属性を設定
+    starGeometry.setAttribute('color', new THREE.Float32BufferAttribute(starColors, 3));
 
     this.starTexture = this.createStarTexture();
     const starMaterial = new THREE.PointsMaterial({
@@ -108,11 +102,13 @@ export class MirroredLakeScene {
         transparent: true,
         blending: THREE.AdditiveBlending,
         depthWrite: false,
-        vertexColors: true, // vertexColorsを有効化
+        vertexColors: true,
     });
     
     this.stars = new THREE.Points(starGeometry, starMaterial);
-    this.reflectedStars = new THREE.Points(reflectedStarGeometry, starMaterial.clone());
+    
+    this.reflectedStars = new THREE.Points(starGeometry, starMaterial.clone());
+    this.reflectedStars.scale.y = -1;
     this.reflectedStars.material.opacity = 0.4;
 
     this.stars.renderOrder = 0;
@@ -139,6 +135,7 @@ export class MirroredLakeScene {
   }
 
   update(audioData, time) {
+    // ▼▼▼ このメソッド全体を差し替え ▼▼▼
     const { mid, treble, frequencyData } = audioData;
 
     if (!frequencyData) return;
@@ -176,9 +173,24 @@ export class MirroredLakeScene {
     this.reflectedMountain.geometry = new THREE.ShapeGeometry(reflectedShape);
 
     // 2. Update Stars
-    const starOpacity = map(treble, 0.0, 0.5, 0.2, 2.0); // trebleが低いと透明になり、高いと強く光る
+    const speed = map(mid, 0, 1, 0.0, 0.1);
+    const starPositions = this.stars.geometry.attributes.position.array;
+
+    for (let i = 0; i < this.NUM_STARS; i++) {
+        starPositions[i * 3 + 1] += speed;
+
+        // Y座標が範囲を超えたら、反対側（Y=0）に戻す
+        if (starPositions[i * 3 + 1] > this.STAR_Y_RANGE) {
+            starPositions[i * 3 + 1] -= this.STAR_Y_RANGE;
+        }
+    }
+    this.stars.geometry.attributes.position.needsUpdate = true;
+
+    // 3. Update Star Opacity
+    const starOpacity = map(treble, 0.0, 0.5, 0.2, 2.0);
     this.stars.material.opacity = starOpacity;
-    this.reflectedStars.material.opacity = starOpacity * 0.3; // 反射も連動させる
+    this.reflectedStars.material.opacity = starOpacity * 0.3;
+    // ▲▲▲ ここまで差し替え ▲▲▲
   }
   
   updateForegroundColor(color) {
@@ -200,11 +212,8 @@ export class MirroredLakeScene {
     this.background.material.dispose();
     this.stars.geometry.dispose();
     this.stars.material.dispose();
-    this.reflectedStars.geometry.dispose();
     this.reflectedStars.material.dispose();
-    // ▼▼▼ この行を追記 ▼▼▼
     this.starTexture.dispose();
-    // ▲▲▲ ここまで追記 ▲▲▲
     this.mountain.geometry.dispose();
     this.mountain.material.dispose();
     this.reflectedMountain.geometry.dispose();
