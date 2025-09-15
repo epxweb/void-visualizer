@@ -1,4 +1,4 @@
-# Void - Audio Visualizer v.1.4.2
+# Void - Audio Visualizer v.1.4.3
 
 リアルタイム音声入力に反応する、DJのためのミニマルな簡易VJ Webアプリです。  
 ブラウザで開いて、DJ時にOBSのウィンドウキャプチャのソースとして利用することを想定しています。  
@@ -176,7 +176,7 @@ This project utilizes third-party libraries under the following licenses:
 
 ---
 
-# Void - Audio Visualizer v.1.4.2
+# Void - Audio Visualizer v.1.4.3
 
 A minimal VJ web app for DJs that reacts to real-time audio input.  
 It is designed to be opened in a browser and used as a window capture source in OBS during a DJ set.  
