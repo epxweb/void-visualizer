@@ -115,22 +115,22 @@ export class MirroredLakeScene {
     this.reflectedStars = new THREE.Points(reflectedStarGeometry, starMaterial.clone());
     this.reflectedStars.material.opacity = 0.4;
 
-    this.stars.renderOrder = 1;
-    this.reflectedStars.renderOrder = 1;
+    this.stars.renderOrder = 0;
+    this.reflectedStars.renderOrder = 0;
     
     this.sceneGroup.add(this.stars);
     this.sceneGroup.add(this.reflectedStars);
 
     // 3. Mountains & Reflection
-    const mountainMaterial = new THREE.MeshBasicMaterial({ color: new THREE.Color(0x000000) });
+    const mountainMaterial = new THREE.MeshBasicMaterial({ color: new THREE.Color(0x000000), transparent: true });
     const placeholderShape = new THREE.Shape();
     this.mountain = new THREE.Mesh(new THREE.ShapeGeometry(placeholderShape), mountainMaterial);
     this.reflectedMountain = new THREE.Mesh(new THREE.ShapeGeometry(placeholderShape), mountainMaterial);
     this.mountain.position.z = -20;
     this.reflectedMountain.position.z = -20;
 
-    this.mountain.renderOrder = 0;
-    this.reflectedMountain.renderOrder = 0;
+    this.mountain.renderOrder = 1;
+    this.reflectedMountain.renderOrder = 1;
     
     this.sceneGroup.add(this.mountain);
     this.sceneGroup.add(this.reflectedMountain);
