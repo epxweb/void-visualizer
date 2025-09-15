@@ -41,7 +41,7 @@
 
 ## 🎭 デフォルトシーン (v1.4.3)
 
-現在、以下の17個のシーンが実装されています。
+現在、以下の18個のシーンが実装されています。
 
 ### Wavy Lines
 -   **概要**: 画面を横切る複数の波打つ線で構成されます。
@@ -139,6 +139,12 @@
 - **中域 (Mid)**: 雨が降る速度と波紋が広がる速度をコントロールします。
 - **高域 (Treble)**: 画面奥から降り注ぐ雨の軌跡の数や激しさに影響します。
 
+### Mirrored Lake
+- **概要**: 静かな湖の湖面に、満点の星空と山の稜線が鏡のように映り込む、静謐な風景を描きます。
+- **低域 (Bass)**: オーディオの周波数スペクトル全体に山のシルエットが反応し、リズミカルにその稜線を変化させます。
+- **中域 (Mid)**: 星空が上下に流れる速度が変化します。空の星は上へ、湖面の星は下へと移動します。
+- **高域 (Treble)**: 星全体の明るさが変化し、きらめきを表現します。
+
 ### Audio Graph
 -   **概要**: オーディオ解析データ（`bass`, `mid`, `treble`とそれぞれのアタック値）を、システムパフォーマンスモニターのような6つのリアルタイムライングラフとして可視化します。
 -   **低域 (Bass)**: 左下のグラフに`bass`のエネルギー量が、右下のグラフに`bassAttack`の値がリアルタイムで描画されます。
@@ -213,7 +219,7 @@ Due to the nature of audio input, a loopback function on your audio interface ma
 
 ## 🎭 Default Scenes (v1.4.3)
 
-The following 17 scenes are currently implemented.
+The following 18 scenes are currently implemented.
 
 ### Wavy Lines
 -   **Overview**: Composed of multiple wavy lines crossing the screen.
@@ -310,6 +316,12 @@ The following 17 scenes are currently implemented.
 - **Bass**: Affects the number and size of the ripples spreading on the ground.
 - **Mid**: Controls the speed of the falling rain and the spreading ripples.
 - **Treble**: Affects the number and intensity of the rain streaks pouring from the back of the screen.
+
+### Mirrored Lake
+  **Overview**: Depicts a serene landscape where a star-filled sky and mountain ridge are reflected like a mirror on the surface of a quiet lake.
+  **Bass**: The mountain silhouette reacts to the entire audio frequency spectrum, rhythmically changing its ridgeline.
+  **Mid**: Affects the vertical scrolling speed of the stars. Stars in the sky move upwards, while their reflections in the lake move downwards.
+  **Treble**: Changes the overall brightness of the stars, creating a shimmering effect.
 
 ### Audio Graph
 - **Overview**: Visualizes the raw audio analysis data (`bass`, `mid`, `treble`, and their respective attack values) as six real-time line graphs, resembling a system performance monitor.

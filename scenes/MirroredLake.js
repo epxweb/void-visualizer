@@ -81,7 +81,6 @@ export class MirroredLakeScene {
     
     for (let i = 0; i < this.NUM_STARS; i++) {
         const x = (Math.random() - 0.5) * 400;
-        // ▼▼▼ Y座標を 0 から STAR_Y_RANGE の間に限定 ▼▼▼
         const y = Math.random() * this.STAR_Y_RANGE;
         const z = (Math.random() - 0.5) * 50 - 20;
 
@@ -135,7 +134,6 @@ export class MirroredLakeScene {
   }
 
   update(audioData, time) {
-    // ▼▼▼ このメソッド全体を差し替え ▼▼▼
     const { mid, treble, frequencyData } = audioData;
 
     if (!frequencyData) return;
@@ -190,7 +188,6 @@ export class MirroredLakeScene {
     const starOpacity = map(treble, 0.0, 0.5, 0.2, 2.0);
     this.stars.material.opacity = starOpacity;
     this.reflectedStars.material.opacity = starOpacity * 0.3;
-    // ▲▲▲ ここまで差し替え ▲▲▲
   }
   
   updateForegroundColor(color) {
