@@ -72,7 +72,7 @@ const sceneManager = {
       'Reactive Smoke': { path: './scenes/ReactiveSmoke.js', className: 'ReactiveSmokeScene' },
       'Digital Curtain': { path: './scenes/DigitalCurtain.js', className: 'DigitalCurtainScene' },
       'Heavy Rain': { path: './scenes/HeavyRain.js', className: 'HeavyRainScene' },
-      'Starry Lake': { path: './scenes/StarryLake.js', className: 'StarryLakeScene' },
+      'Mirrored Lake': { path: './scenes/MirroredLake.js', className: 'MirroredLakeScene' },
       'Audio Graph': { path: './scenes/AudioGraph.js', className: 'AudioGraphScene' },
       'Empty': null
     };
@@ -385,11 +385,20 @@ const setupUI = () => {
 };
 
 const setupPostprocessing = () => {
-  composer = new EffectComposer(renderer);
-  composer.addPass(new RenderPass(scene, camera));
-
   const size = new THREE.Vector2();
   renderer.getSize(size);
+  
+  // 深度バッファを持つレンダーターゲットを明示的に作成
+  const renderTarget = new THREE.WebGLRenderTarget(size.width, size.height, {
+    depthBuffer: true,
+    stencilBuffer: false
+  });
+
+  // 作成したレンダーターゲットを使ってcomposerを初期化
+  composer = new EffectComposer(renderer, renderTarget);
+  composer.addPass(new RenderPass(scene, camera));
+
+  // シーン切り替え（トランジション）用に、レンダーターゲットを別途用意
   renderTargetA = new THREE.WebGLRenderTarget(size.width, size.height);
   renderTargetB = new THREE.WebGLRenderTarget(size.width, size.height);
   
@@ -494,7 +503,7 @@ const renderFrame = () => {
 
   if (analyser) {
     updateAudio();
-    const audioData = { bass, mid, treble, bassAttack, midAttack, trebleAttack };
+    const audioData = { bass, mid, treble, bassAttack, midAttack, trebleAttack, frequencyData: dataArray };
     sceneManager.update(audioData, time);
 
     if (params.strobe.enable) {
