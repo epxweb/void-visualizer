@@ -566,11 +566,18 @@ const renderFrame = () => {
 const handleVisibilityChange = () => {
     if (document.hidden) {
         isPageActive = false;
-        stopAnimationLoop();
-        startAnimationLoop();
+        // アクティブ時の描画ループ(rAF)のみを停止
+        if (animationFrameId) {
+            cancelAnimationFrame(animationFrameId);
+            animationFrameId = null;
+        }
+        // Web Workerによるバックグラウンド描画を開始
+        worker.postMessage({ type: 'start' });
     } else {
         isPageActive = true;
-        stopAnimationLoop();
+        // stopAnimationLoop()は呼ばず、Workerだけを直接停止する
+        worker.postMessage({ type: 'stop' });
+        // アクティブ時の描画ループを再開
         startAnimationLoop();
     }
 };
