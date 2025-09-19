@@ -241,6 +241,7 @@ const init = async () => {
   document.addEventListener('visibilitychange', handleVisibilityChange, false);
   document.body.addEventListener('touchstart', onTouchStart, { passive: false });
   document.body.addEventListener('touchend', onTouchEnd, false);
+  document.body.addEventListener('dblclick', onDoubleClick, false);
 
   const startText = document.createElement('div');
   startText.id = 'start-text';
@@ -636,6 +637,14 @@ const onTouchEnd = (event) => {
         }
     }
     touchStartX = 0;
+};
+
+const onDoubleClick = (event) => {
+  if (event.target.closest('.tp-dfwv')) return;
+  
+  if (pane) {
+    pane.hidden = !pane.hidden;
+  }
 };
 
 const toggleFullscreen = () => {
