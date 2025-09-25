@@ -18,15 +18,6 @@ let bassAttack = 0, midAttack = 0, trebleAttack = 0;
 let clock = new THREE.Clock();
 
 let worker;
-
-// --- Autoshift Hue 用のグローバル変数 ---
-let fgColorPicker, bgColorPicker;
-let fgBaseColor = new THREE.Color();
-let bgBaseColor = new THREE.Color();
-let fgBaseHSL = { h: 0, s: 0, l: 0 };
-let bgBaseHSL = { h: 0, s: 0, l: 0 };
-// --- ここまで ---
-
 let isPageActive = true;
 let animationFrameId = null;
 
@@ -43,7 +34,7 @@ const SWIPE_THRESHOLD = 50;   // スワイプと判定する距離 (px)
 
 const params = {
   audio: { bassSensitivity: 1.0, midSensitivity: 1.0, trebleSensitivity: 1.0 },
-  visual: { grain: 0.1, backgroundColor: '#000000', foregroundColor: '#ffffff', autoshiftFgHue: false, autoshiftBgHue: false },
+  visual: { grain: 0.1, backgroundColor: '#000000', foregroundColor: '#ffffff' },
   strobe: { enable: true, sensitivity: 0.4, brightness: 0.05 },
   transition: { auto: false, interval: 30, duration: 1.5, random: false },
   system: { backgroundFps: 60 }
@@ -321,38 +312,17 @@ const setupUI = () => {
   audioFolder.addBinding(params.audio, 'midSensitivity', { min: 0, max: 5, step: 0.1, label: 'Mid' });
   audioFolder.addBinding(params.audio, 'trebleSensitivity', { min: 0, max: 5, step: 0.1, label: 'Treble' });
 
-        const visualFolder = pane.addFolder({ title: 'Visuals' });
-        visualFolder.addBinding(params.visual, 'grain', { min: 0, max: 0.5, step: 0.01 });
-  
-        // --- Autoshift Hue 機能 ---
-        fgColorPicker = visualFolder.addBinding(params.visual, 'foregroundColor');
-        fgColorPicker.on('change', (ev) => {
-          sceneManager.updateForegroundColor(new THREE.Color(ev.value));
-        });
-        visualFolder.addBinding(params.visual, 'autoshiftFgHue', { label: 'Autoshift FG Hue' })
-          .on('change', (ev) => {
-            fgColorPicker.disabled = ev.value;
-            if (ev.value) {
-              fgBaseColor.set(params.visual.foregroundColor);
-              fgBaseColor.getHSL(fgBaseHSL);
-            }
-          });
-  
-        bgColorPicker = visualFolder.addBinding(params.visual, 'backgroundColor');
-        bgColorPicker.on('change', (ev) => {
-          renderer.setClearColor(new THREE.Color(ev.value), params.visual.backgroundColor === 'transparent' ? 0 : 1);
-        });
-        visualFolder.addBinding(params.visual, 'autoshiftBgHue', { label: 'Autoshift BG Hue' })
-          .on('change', (ev) => {
-            bgColorPicker.disabled = ev.value;
-            if (ev.value) {
-              bgBaseColor.set(params.visual.backgroundColor);
-              bgBaseColor.getHSL(bgBaseHSL);
-            }
-          });
-        // --- ここまで ---
-  
-        visualFolder.addBinding(params.strobe, 'enable', { label: 'Strobe' });  visualFolder.addBinding(params.strobe, 'sensitivity', { label: 'Strobe Sensitivity', min: 0, max: 1.0, step: 0.05 });
+  const visualFolder = pane.addFolder({ title: 'Visuals' });
+  visualFolder.addBinding(params.visual, 'grain', { min: 0, max: 0.5, step: 0.01 });
+  visualFolder.addBinding(params.visual, 'backgroundColor').on('change', (ev) => {
+    renderer.setClearColor(new THREE.Color(ev.value), params.visual.backgroundColor === 'transparent' ? 0 : 1);
+  });
+  visualFolder.addBinding(params.visual, 'foregroundColor').on('change', (ev) => {
+    sceneManager.updateForegroundColor(new THREE.Color(ev.value));
+  });
+
+  visualFolder.addBinding(params.strobe, 'enable', { label: 'Strobe' });
+  visualFolder.addBinding(params.strobe, 'sensitivity', { label: 'Strobe Sensitivity', min: 0, max: 1.0, step: 0.05 });
   visualFolder.addBinding(params.strobe, 'brightness', { label: 'Strobe Brightness', min: 0, max: 0.5, step: 0.05 });
   
   const sceneFolder = pane.addFolder({ title: 'Scene Slots' });
@@ -555,27 +525,6 @@ const renderFrame = () => {
       sceneManager.switchToNext();
     }
   }
-
-  // --- Autoshift Hue 更新ロジック ---
-  if (params.visual.autoshiftFgHue) {
-    const hue = (elapsedTime / 60) % 1.0;
-    const newColor = new THREE.Color();
-    newColor.setHSL(hue, fgBaseHSL.s, fgBaseHSL.l);
-    
-    params.visual.foregroundColor = '#' + newColor.getHexString();
-    sceneManager.updateForegroundColor(newColor);
-    if (fgColorPicker) fgColorPicker.refresh();
-  }
-  if (params.visual.autoshiftBgHue) {
-    const hue = (elapsedTime / 60) % 1.0;
-    const newColor = new THREE.Color();
-    newColor.setHSL(hue, bgBaseHSL.s, bgBaseHSL.l);
-
-    params.visual.backgroundColor = '#' + newColor.getHexString();
-    renderer.setClearColor(newColor, params.visual.backgroundColor === 'transparent' ? 0 : 1);
-    if (bgColorPicker) bgColorPicker.refresh();
-  }
-  // --- ここまで ---
 
   grainPass.uniforms.amount.value = params.visual.grain;
 

@@ -1,4 +1,4 @@
-# Void - Audio Visualizer v.1.4.3
+# Void - Audio Visualizer v.1.5.0
 
 リアルタイム音声入力に反応する、DJのためのミニマルな簡易VJ Webアプリです。  
 ブラウザで開いて、DJ時にOBSのウィンドウキャプチャのソースとして利用することを想定しています。  
@@ -19,6 +19,7 @@
 -   **設定の保存・読み込み機能**: 各種パラメータやスロットのシーン構成をJSONファイルとしてローカルに保存し、いつでも復元できます。これにより、お気に入りの設定をプリセットとして管理可能です。
 -   **オートシーン再生**: 1から5までのスロットに登録したEmptyを除く各シーンをシーケンシャルに連続再生します。シーン遷移のインターバル時間とクロスフェード時間が設定できます。ランダム再生も可能です。
 -   **ストロボ機能**: 低音の入力に反応して画面全体を発光させる機能です。感度と明るさを設定できます。
+-   **色相の自動遷移**: 前景色・背景色の色相が時間経過で自動的に変化し、単調になりがちなビジュアルに彩りを加えます。
 -   **バックグラウンド再生**: 非アクティブウィンドウの状態でも映像を再生可能なため、OBSの映像ソースとして活用できます。また、映像配信設定・CPU負荷を考慮して、バックグラウンド再生時のフレームレートを60/30/15fpsから設定可能です。
 -   **順次実装予定**: 追加ビジュアルシーン。
 
@@ -39,7 +40,7 @@
 -   ダブルタップでUI非表示のON/OFF。
 -   左右スワイプで再生スロットの切り替え。
 
-## 🎭 デフォルトシーン (v1.4.3)
+## 🎭 デフォルトシーン (v1.5.0)
 
 現在、以下の18個のシーンが実装されています。
 
@@ -176,7 +177,7 @@ This project utilizes third-party libraries under the following licenses:
 
 ---
 
-# Void - Audio Visualizer v.1.4.3
+# Void - Audio Visualizer v.1.5.0
 
 A minimal VJ web app for DJs that reacts to real-time audio input.  
 It is designed to be opened in a browser and used as a window capture source in OBS during a DJ set.  
@@ -197,6 +198,7 @@ Due to the nature of audio input, a loopback function on your audio interface ma
 -   **Save/Load Settings**: Save your current parameter and scene slot configurations as a local JSON file, allowing you to restore them at any time. This enables you to manage your favorite settings as presets.
 -   **Auto Scene Playback**: Sequentially plays back scenes registered in slots 1 through 5 (excluding "Empty"). You can set the interval and crossfade duration for transitions. Random playback is also available.
 -   **Strobe Effect**: A function that flashes the entire screen in response to low-frequency input. Sensitivity and brightness can be adjusted.
+-   **Autoshift Hue**: Automatically and continuously shifts the hue of foreground and background colors to prevent visual monotony and add more color dynamics.
 -   **Background Playback**: Continues to render visuals even when the window is inactive, making it ideal for use as a source in OBS. You can also set the background frame rate to 60, 30, or 15 fps to manage CPU load and streaming settings.
 -   **Coming Soon**: Additional visual scenes.
 
@@ -217,7 +219,7 @@ Due to the nature of audio input, a loopback function on your audio interface ma
 -   Double Tap to hide UI.
 -   Horizontal swipe to change between slots.
 
-## 🎭 Default Scenes (v1.4.3)
+## 🎭 Default Scenes (v1.5.0)
 
 The following 18 scenes are currently implemented.
 
