@@ -84,6 +84,25 @@ export class DigitalCurtainScene {
       }
     }
     this.instancedSegments.instanceMatrix.needsUpdate = true;
+
+    // Set initial colors
+    const color = new THREE.Color();
+    const baseColor = new THREE.Color(this.params.visual.foregroundColor);
+    instanceIdx = 0;
+    for (let i = 0; i < this.gridSize.x * this.gridSize.y; i++) {
+      const state = this.digitStates[i];
+      const segmentsToShow = this.SEGMENT_MAP[state.currentDigit.toString()];
+      for (let s = 0; s < 7; s++) {
+        const isVisible = segmentsToShow[s];
+        if (isVisible) {
+          color.set(baseColor).multiplyScalar(0.04);
+        } else {
+          color.set(baseColor).multiplyScalar(0.02);
+        }
+        this.instancedSegments.setColorAt(instanceIdx++, color);
+      }
+    }
+    this.instancedSegments.instanceColor.needsUpdate = true;
   }
 
   update(audioData, time) {
