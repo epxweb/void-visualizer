@@ -26,7 +26,8 @@ export class SolarSystemScene {
     this.planets = [];
     this.starfield = null;
 
-    this.originalCameraPos = new THREE.Vector3().copy(camera.position);
+    this.originalCameraPos = new THREE.Vector3();
+    this.originalCameraQuaternion = new THREE.Quaternion();
 
     this.init();
   }
@@ -154,17 +155,19 @@ export class SolarSystemScene {
 
   show() {
     this.systemGroup.visible = true;
+    this.originalCameraPos.copy(this.camera.position);
+    this.originalCameraQuaternion.copy(this.camera.quaternion);
   }
 
   hide() {
     this.camera.position.copy(this.originalCameraPos);
-    this.camera.lookAt(0,0,0);
+    this.camera.quaternion.copy(this.originalCameraQuaternion);
     this.systemGroup.visible = false;
   }
 
   dispose() {
     this.camera.position.copy(this.originalCameraPos);
-    this.camera.lookAt(0,0,0);
+    this.camera.quaternion.copy(this.originalCameraQuaternion);
 
     // テクスチャもdisposeする
     if (this.starfield && this.starfield.material.map) {
