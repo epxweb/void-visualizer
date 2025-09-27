@@ -17,6 +17,10 @@ let lastBass = 0, lastMid = 0, lastTreble = 0;
 let bassAttack = 0, midAttack = 0, trebleAttack = 0;
 let clock = new THREE.Clock();
 
+// --- カメラのデフォルト状態を保存する変数 ---
+let defaultCameraPosition = new THREE.Vector3();
+let defaultCameraQuaternion = new THREE.Quaternion();
+
 let worker;
 
 // --- Autoshift Hue 用のグローバル変数 ---
@@ -35,7 +39,6 @@ let transitioner = new Transitioner();
 let transitionPass, strobePass, grainPass;
 let renderTargetA, renderTargetB;
 
-// --- 設定読み込み中フラグ ---
 let isLoadingSettings = false;
 
 // --- タッチ操作用の変数 ---
@@ -238,6 +241,11 @@ const init = async () => {
   scene = new THREE.Scene();
   camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
   camera.position.z = 10;
+
+  // カメラの初期状態を保存
+  defaultCameraPosition.copy(camera.position);
+  defaultCameraQuaternion.copy(camera.quaternion);
+
   renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
   renderer.setPixelRatio(window.devicePixelRatio);
   renderer.setSize(window.innerWidth, window.innerHeight);
@@ -368,7 +376,6 @@ const setupUI = () => {
   // UIでのシーン変更時の処理
   for (let i = 1; i <= 5; i++) {
     sceneFolder.addBinding(slotParams, `Slot ${i}`, { options: sceneOptions }).on('change', async (ev) => {
-      // 読み込み中のイベントを無視
       if (isLoadingSettings) return;
       
       if (sceneManager.isSwitching) {
@@ -730,64 +737,67 @@ const saveSettings = () => {
 };
 
 const applySettings = async (settings) => {
-  // 読み込み開始
   isLoadingSettings = true;
-  console.log("Applying settings...");
-  
-  stopAnimationLoop();
+  try {
+    console.log("Applying settings...");
+    stopAnimationLoop();
 
-  Object.assign(params.audio, settings.params.audio);
-  Object.assign(params.visual, settings.params.visual);
-  Object.assign(params.strobe, settings.params.strobe);
-  Object.assign(params.transition, settings.params.transition);
-  Object.assign(params.system, settings.params.system);
+    Object.assign(params.audio, settings.params.audio);
+    Object.assign(params.visual, settings.params.visual);
+    Object.assign(params.strobe, settings.params.strobe);
+    Object.assign(params.transition, settings.params.transition);
+    Object.assign(params.system, settings.params.system);
 
-  // 新しいスロット設定のシーンをすべてプリロード
-  const preloadPromises = settings.slots.map(sceneName => sceneManager.preloadScene(sceneName));
-  await Promise.all(preloadPromises);
-  console.log("All scenes from settings are preloaded.");
+    // 新しいスロット設定のシーンをすべてプリロード
+    const preloadPromises = settings.slots.map(sceneName => sceneManager.preloadScene(sceneName));
+    await Promise.all(preloadPromises);
+    console.log("All scenes from settings are preloaded.");
 
-  // 古いインスタンスをすべて破棄
-  sceneManager.activeInstances.forEach(instance => {
-    if (instance && instance.dispose) instance.dispose();
-  });
-  sceneManager.activeInstances = [];
+    // 古いインスタンスをすべて破棄
+    sceneManager.activeInstances.forEach(instance => {
+      if (instance && instance.dispose) instance.dispose();
+    });
+    sceneManager.activeInstances = [];
 
-  // プリロード済みのキャッシュから新しいインスタンスを生成
-  const newInstancesPromises = settings.slots.map(sceneName => sceneManager.createSceneInstance(sceneName));
-  const newInstances = await Promise.all(newInstancesPromises);
+    // カメラ状態を強制的にリセット
+    camera.position.copy(defaultCameraPosition);
+    camera.quaternion.copy(defaultCameraQuaternion);
 
-  sceneManager.activeSlots = settings.slots;
-  sceneManager.activeInstances = newInstances;
-  
-  for (let i = 0; i < 5; i++) {
-    slotParams[`Slot ${i + 1}`] = settings.slots[i] || 'Empty';
-  }
-  
-  const newIndex = settings.currentSlotIndex || 0;
-  
-  sceneManager.activeInstances.forEach((instance, index) => {
-    if (instance) {
-      if (index === newIndex) {
-        instance.show();
-      } else {
-        instance.hide();
-      }
+    // プリロード済みのキャッシュから新しいインスタンスを生成
+    const newInstancesPromises = settings.slots.map(sceneName => sceneManager.createSceneInstance(sceneName));
+    const newInstances = await Promise.all(newInstancesPromises);
+
+    sceneManager.activeSlots = settings.slots;
+    sceneManager.activeInstances = newInstances;
+    
+    for (let i = 0; i < 5; i++) {
+      slotParams[`Slot ${i + 1}`] = settings.slots[i] || 'Empty';
     }
-  });
-  sceneManager.setCurrentSlot(newIndex);
+    
+    const newIndex = settings.currentSlotIndex || 0;
+    
+    sceneManager.activeInstances.forEach((instance, index) => {
+      if (instance) {
+        if (index === newIndex) {
+          instance.show();
+        } else {
+          instance.hide();
+        }
+      }
+    });
+    sceneManager.setCurrentSlot(newIndex);
 
-  renderer.setClearColor(new THREE.Color(params.visual.backgroundColor));
-  sceneManager.updateForegroundColor(new THREE.Color(params.visual.foregroundColor));
-  worker.postMessage({ type: 'update-fps', payload: { fps: params.system.backgroundFps } });
+    renderer.setClearColor(new THREE.Color(params.visual.backgroundColor));
+    sceneManager.updateForegroundColor(new THREE.Color(params.visual.foregroundColor));
+    worker.postMessage({ type: 'update-fps', payload: { fps: params.system.backgroundFps } });
 
-  pane.refresh();
+    pane.refresh();
 
-  console.log("Settings applied. Resuming animation.");
-  startAnimationLoop();
-  
-  // 読み込み完了
-  isLoadingSettings = false;
+    console.log("Settings applied. Resuming animation.");
+    startAnimationLoop();
+  } finally {
+    isLoadingSettings = false;
+  }
 };
 
 init();
