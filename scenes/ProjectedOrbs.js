@@ -35,8 +35,6 @@ export class ProjectedOrbsScene {
   init() {
     this.originalCameraPos.copy(this.camera.position);
     this.originalCameraQuaternion.copy(this.camera.quaternion);
-    this.camera.position.set(15, 0, 15);
-    this.camera.lookAt(0, -5, 0);
 
     const wallGeometry = new THREE.PlaneGeometry(this.WALL_SIZE, this.WALL_SIZE * 2);
     const wallMaterial = new THREE.MeshBasicMaterial({ visible: false });

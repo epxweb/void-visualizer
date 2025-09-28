@@ -110,6 +110,63 @@ class MyScene {
 }
 ```
 
+### 3.4. 共有カメラの取り扱い【重要】
+
+本アプリケーションの`camera`オブジェクトは、**すべてのシーンで共有される単一のインスタンス**です。あるシーンがカメラの位置や向きを勝手に変更し、それを元に戻さない場合、後続のシーンの表示が完全に崩れてしまう原因となります。
+
+カメラを操作する必要があるシーン（例: `SolarSystem`のようにカメラ自身が動く、`HeavyRain`のように特定の画角に固定する）を実装する場合は、以下のルールを**必ず**守ってください。
+
+1.  **`constructor`または`init`で初期状態を保存する**
+    シーンがインスタンス化された時点で、現在のカメラの状態をクラスのプロパティとして保存しておきます。
+
+2.  **カメラの操作は`show`メソッドで行う**
+    `init`や`constructor`の時点では、絶対にカメラを動かしてはいけません。カメラの位置や向きを変更する処理は、必ずシーンが表示される`show()`メソッド内で行ってください。
+
+3.  **`hide`と`dispose`で必ず元の状態に復元する**
+    シーンが非表示になる、または破棄される際には、1.で保存しておいた状態にカメラを**必ず**復元してください。
+
+**実装例:**
+
+```javascript
+export class MyCameraScene {
+  constructor(scene, params, camera) {
+    // ...
+    this.camera = camera;
+    this.originalCameraPos = new THREE.Vector3();
+    this.originalCameraQuaternion = new THREE.Quaternion();
+    this.init();
+  }
+
+  init() {
+    // 1. カメラの初期状態を保存
+    this.originalCameraPos.copy(this.camera.position);
+    this.originalCameraQuaternion.copy(this.camera.quaternion);
+    // ...
+  }
+
+  show() {
+    this.sceneGroup.visible = true;
+    // 2. 表示されるときにカメラを操作する
+    this.camera.position.set(0, 0, 20);
+    this.camera.lookAt(0, 0, 0);
+  }
+
+  hide() {
+    this.sceneGroup.visible = false;
+    // 3. 非表示になる際にカメラを元の状態に復元
+    this.camera.position.copy(this.originalCameraPos);
+    this.camera.quaternion.copy(this.originalCameraQuaternion);
+  }
+
+  dispose() {
+    // 3. 破棄される際にも、念のためカメラを元の状態に復元
+    this.camera.position.copy(this.originalCameraPos);
+    this.camera.quaternion.copy(this.originalCameraQuaternion);
+    // ... 他のdispose処理
+  }
+}
+```
+
 ### 4. 任意の共通メソッド
 
 以下のメソッドは必須ではありませんが、UIとの連携や共通機能を実装する際に、この命名規則に従うことを推奨します。

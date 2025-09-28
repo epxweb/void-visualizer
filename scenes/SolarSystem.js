@@ -36,6 +36,9 @@ export class SolarSystemScene {
    * シーンの初期化処理。
    */
   init() {
+    this.originalCameraPos.copy(this.camera.position);
+    this.originalCameraQuaternion.copy(this.camera.quaternion);
+
     // 恒星（太陽）の作成
     const sunGeometry = new THREE.SphereGeometry(1.5, 32, 32);
     const sunMaterial = new THREE.MeshBasicMaterial({ 
@@ -155,8 +158,6 @@ export class SolarSystemScene {
 
   show() {
     this.systemGroup.visible = true;
-    this.originalCameraPos.copy(this.camera.position);
-    this.originalCameraQuaternion.copy(this.camera.quaternion);
   }
 
   hide() {

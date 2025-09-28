@@ -161,6 +161,10 @@ const sceneManager = {
   async switchTo(slotIndex) {
     if (this.isSwitching || slotIndex < 0 || slotIndex >= 5 || slotIndex === this.currentSlotIndex) return;
     
+    // カメラをデフォルト状態にリセットする処理を追加
+    camera.position.copy(defaultCameraPosition);
+    camera.quaternion.copy(defaultCameraQuaternion);
+    
     this.isSwitching = true;
 
     const fromInstance = this.activeInstances[this.currentSlotIndex];
